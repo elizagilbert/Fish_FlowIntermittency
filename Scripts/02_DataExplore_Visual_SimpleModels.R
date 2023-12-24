@@ -11,187 +11,74 @@ library(lme4)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
-datfish <- read.csv("Data/Processed/RGFishCPUE.csv")
 datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach.csv")
-
-#Wrangle drying ####
-#annual statistics
-ggplot(datdry, aes(x = log(SumDaysDry)))+
-  geom_histogram()+
-  facet_wrap(vars(Reach))
-
-sum_dry_irrig <- datdry %>%
-  mutate(Month = month(Date)) %>% 
-  filter(between(Month, 3, 10)) %>% 
-  group_by(Reach, year(Date)) %>% 
-  summarise(mn_extent = mean(ExtentDry), mn_chng = mean(ChngExtentDry), 
-            mn_sum = mean(SumDaysDry), max_sum = max(SumDaysDry), 
-            max_extent = max(ExtentDry), max_chng = max(ChngExtentDry)) %>% 
-  rename(Year = 2)
-
-sum_dry_irrig %>% 
-  select(Year, mn_chng, mn_extent, mn_sum) %>% 
-  pivot_longer(cols = "mn_chng":"mn_sum", names_to = "Stat", values_to = "Val") %>% 
-  ggplot()+
-  geom_point(aes(x = Year, y = Val))+
-  geom_line(aes(x = Year, y = Val))+
-  facet_wrap((Stat~Reach), scales = "free", nrow = 3)+
-  theme_bw()+
-  scale_x_continuous(breaks = seq(2010, 2022, by = 1))+
-  scale_y_continuous(trans = "log10")+
-  theme(axis.text.x=element_text(angle=60,hjust=1),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-
-sum_dry_irrig %>% 
-  select(Year, mn_chng, mn_extent, mn_sum) %>% 
-  pivot_longer(cols = "mn_chng":"mn_sum", names_to = "Stat", values_to = "Val") %>% 
-  ggplot()+
-  geom_histogram(aes(x = log(Val)), bins = 40)+
-  facet_wrap((Stat~Reach), scales = "free", nrow = 3)+
-  theme_bw()+
-  theme(axis.text.x=element_text(angle=60,hjust=1),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
 
 #Visualize fish ####
 #visualization of annual density
-datfish %>% 
+datfish_rm %>% 
+  group_by(Species_Codes, Year) %>% 
+  summarise(MnCpue = mean(CPUE_m)) %>% 
+  ungroup() %>% 
   ggplot(aes(x = Year, y = MnCpue))+
   geom_line()+
-  facet_grid(Species_Codes ~ Reach, scales = "free_y")+
+  facet_wrap(vars(Species_Codes))+
   theme_bw()+
   scale_x_continuous(breaks = seq(2010, 2022, by = 1))+
-  scale_y_continuous(trans = "log10")+
+  scale_y_continuous(trans = "log10", labels = scales::number_format(accuracy = 0.01, decimal.mark = "."))+
   theme(axis.text.x=element_text(angle=60,hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-datfish %>% 
-  ggplot(aes(x = log(MnCpue+0.001)))+
+datfish_rm %>%   
+  group_by(Species_Codes, Year) %>% 
+  summarise(MnCpue = mean(CPUE_m)) %>% 
+  ungroup() %>% 
+  ggplot(aes(x = log(MnCpue)))+
   geom_histogram()+
-  facet_grid((Species_Codes~Reach), scales = "free")+
+  facet_wrap(vars(Species_Codes), scales = "free")+
   theme_bw()+
   theme(axis.text.x=element_text(angle=60,hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 
-#Wrangle fish and drying mean by year####
-DatFishDryAll <- datfish %>% 
-  left_join(sum_dry_irrig) %>% 
-  filter(Year != 2022) %>% 
-  mutate(z_extent = scale(mn_extent), z_chng = scale(mn_chng), 
-         z_sum = scale(mn_sum), abs_chng = abs(mn_chng),
-         Species_Codes = as.factor(Species_Codes), Year = as.factor(Year),
-         Reach = as.factor(Reach))
-
-DatFishDry <- datfish %>% 
-  left_join(sum_dry_irrig) %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng),
-         Species_Codes = as.factor(Species_Codes), Year = as.factor(Year),
-         Reach = as.factor(Reach))
-
-DatFishDryIs <- DatFishDry %>% 
-  filter(Reach == "Isleta") %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng))
-
-DatFishDryIs_hybama <- DatFishDry %>% 
-  filter(Reach == "Isleta" & Species_Codes == "HYBAMA") %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng))
-
-DatFishDryIs_plagra <- DatFishDry %>% 
-  filter(Reach == "Isleta" & Species_Codes == "PLAGRA") %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng))
-
-DatFishDryIs_cyplut <- DatFishDry %>% 
-  filter(Reach == "Isleta" & Species_Codes == "CYPLUT") %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng))
-
-DatFishDrySanA <- DatFishDry %>% 
-  filter(Reach == "San Acacia") %>% 
-  filter(Year != 2022 & MnCpue != 0) %>% 
-  mutate(sc_extent = scale(mn_extent), sc_chng = scale(mn_chng), 
-         sc_sum = scale(mn_sum), abs_chng = abs(mn_chng))
 
 #Wrangle fish and drying mean by rm ####
 DatFishDry_RM <- datfish_rm %>% 
-  left_join(sum_dry_irrig) %>% 
-  filter(Year != 2022) %>% 
+  left_join(datdry) %>% 
   mutate(Species_Codes = as.factor(Species_Codes), Year = as.factor(Year),
-         RM_Start = as.factor(RM_Start))
+         RM_Start = as.factor(RM_Start), CPUE_1000m = round((CPUE_m*1000),0))
 
-#Visualize fish drying ####
-DatFishDry_RM %>% 
-  filter(CPUE != 0) %>% 
-  ggplot(aes(x = mn_extent, y = CPUE))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(Reach ~ Species_Codes, scales = "free_y")+
-  scale_y_continuous(trans = "log10", labels = scales::comma)
-
-DatFishDry_RM %>% 
-  ggplot(aes(x = Year, y = RM_Start)) + 
-  geom_point()
-
-DatFishDry_RM %>% 
-  ggplot(aes(x = max_chng, y = CPUE))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(Reach ~ Species_Codes, scales = "free_y")+
-  scale_y_continuous(trans = "log10", labels = scales::comma)
-
-DatFishDry %>% 
-  ggplot(aes(x = mn_sum, y = MnCpue))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(Reach ~ Species_Codes, scales = "free_y")+
-  scale_y_continuous(trans = "log10", labels = scales::comma)
-
-DatFishDry %>% 
-  ggplot(aes(x = max_sum, y = MnCpue))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(Reach ~ Species_Codes, scales = "free_y")+
-  scale_y_continuous(trans = "log10", labels = scales::comma)
-
-DatFishDry %>% 
-  ggplot(aes(x = max_chng, y = MnCpue))+
-  geom_point()+
-  geom_smooth(method = "lm")+
-  facet_wrap(Reach ~ Species_Codes, scales = "free_y")+
-  scale_y_continuous(trans = "log10", labels = scales::comma)
+DatFishDry_RMNoZeros <- DatFishDry_RM %>% 
+  group_by(Reach, Year, Species_Codes) %>% 
+  mutate(MnCPUE = mean(CPUE_m)) %>% 
+  distinct(Year, Reach, Species_Codes, .keep_all = T) %>% 
+  ungroup() %>% 
+  mutate(MnCPUE_Plus1 = MnCPUE+0.0000001)
 
 #Modeling Lognormal Bayes ####
 
 #regular Bayes
-get_prior(MnCpue ~ Species_Codes*max_extent + (1 | Year/Reach),
-          data = DatFishDry)
+get_prior(MnCPUE_Plus1 ~ Species_Codes*Max_Extent + (1 | Year/Reach),
+          data = DatFishDry_RMNoZeros)
 
 p2 = c(set_prior("normal(0,1)", class = "b"))
 
-mod1 <- brm(MnCpue ~  0 + Species_Codes*max_extent, 
-                data = DatFishDrySanA,
+start.time <- Sys.time()
+mod1 <- brm(MnCPUE_Plus1 ~  0 + Species_Codes*Max_Extent + (1 | Year/Reach), 
+                data = DatFishDry_RMNoZeros,
                 chains = 3,
-                warmup = 500,
-                iter = 4000,
+                warmup = 200,
+                iter = 1000,
                 sample_prior = TRUE,
                 family = lognormal(),
                 prior = p2,
                 cores = 4)
-beep(sound = 3)
+beep(1)
+end.time <- Sys.time()
+print(round(end.time - start.time,2))
 
-mod2 <- brm(MnCpue ~  0 + Species_Codes*max_extent + (1|Reach) + (1|Year), 
-            data = DatFishDry,
+mod2 <- brm(MnCPUE_Plus1 ~  0 + Species_Codes*Max_Extent + (1|Reach) + (1|Year), 
+            data = DatFishDry_RMNoZeros,
             chains = 3,
             warmup = 500,
             iter = 4000,
@@ -204,10 +91,12 @@ mod2 <- brm(MnCpue ~  0 + Species_Codes*max_extent + (1|Reach) + (1|Year),
 beep(sound = 3)
 
 print(summary(mod1), digits = 10)
-conditional_effects(mod2)
+conditional_effects(mod1)
 
+pmod1 <- pp_check(mod1, ndraws = 100, type = "dens_overlay_grouped", group = "Species_Codes")
+pmod1+scale_x_continuous(trans="log10")
 
-p4 <- pp_check(mod2)
+p4 <- pp_check(m1)
 p4+scale_x_continuous(trans="log10")
 ce <- conditional_effects(mod1)
 saveRDS(mod1, "ModelOutput/MaxSpec.rds")
@@ -219,8 +108,8 @@ plot(mod2)
 conditional_effects(mod1)
 
 #plot conditional effects wrapped by species
-for_pl <- ce$`max_extent:Species_Codes`
-sum_pl <- summary(mod2)
+for_pl <- ce$`Max_Extent:Species_Codes`
+sum_pl <- summary(mod1)
 for_pl_est <- sum_pl$fixed %>% 
   slice(9:16) %>% 
   select(Estimate) %>% 
@@ -231,7 +120,7 @@ for_pl_est <- sum_pl$fixed %>%
 to_plot <- for_pl %>% 
   left_join(for_pl_est, by = "Species_Codes")
 
-MaxExtent_All <- ggplot(to_plot, aes(x = max_extent, y = estimate__)) +
+MaxExtent_All <- ggplot(to_plot, aes(x = Max_Extent, y = estimate__)) +
   geom_line(color = "blue", size = 1)+
   geom_ribbon(aes(ymin=for_pl$lower__, ymax=for_pl$upper__),
               linetype = 2, alpha = 0.1)+
@@ -240,7 +129,7 @@ MaxExtent_All <- ggplot(to_plot, aes(x = max_extent, y = estimate__)) +
   ylab("Model Catch Per Unit Effort") + xlab("Max annual extent of dry river miles")+
   theme_bw()
 
-MaxExtent_YearReachAdd<- ggplot(to_plot, aes(x = max_extent, y = estimate__)) +
+MaxExtent_YearReachAdd<- ggplot(to_plot, aes(x = Max_Extent, y = estimate__)) +
   geom_line(color = "blue", size = 1)+
   geom_ribbon(aes(ymin=for_pl$lower__, ymax=for_pl$upper__),
               linetype = 2, alpha = 0.1)+
@@ -252,8 +141,8 @@ MaxExtent_YearReachAdd<- ggplot(to_plot, aes(x = max_extent, y = estimate__)) +
 
 
 #Modeling hurdle ####
-get_prior(bf(CPUE ~  Species_Codes*max_extent*Reach + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start), 
-          hu~  Species_Codes*max_extent*Reach + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start)),
+get_prior(bf(CPUE_m ~  Species_Codes*Max_Extent*Reach + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start), 
+          hu~  Species_Codes*Max_Extent*Reach + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start)),
           family = hurdle_lognormal(),
           data = DatFishDry_RM)
 
@@ -273,8 +162,10 @@ p1 <- c(set_prior("normal(0,10)", class = "b"))
 #when one factor appears only within a particular level
 #a RMs are within a given reach within a given year
 
-m1<-brm(bf(CPUE ~ Species_Codes*max_extent + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start), 
-           hu~ Species_Codes*max_extent + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start)),
+start.time <- Sys.time()
+
+m1<-brm(bf(CPUE_m ~ Species_Codes*Max_Extent + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start), 
+           hu~ Species_Codes*Max_Extent + (1|Year) + (1|Year:Reach) + (1|Year:Reach:RM_Start)),
         family = hurdle_lognormal(),
         prior = p1,
         data=DatFishDry_RM,
@@ -283,6 +174,10 @@ m1<-brm(bf(CPUE ~ Species_Codes*max_extent + (1|Year) + (1|Year:Reach) + (1|Year
         iter=4000,
         sample_prior = TRUE,
         cores = 4)
+
+beep(1)
+end.time <- Sys.time()
+print(round(end.time - start.time,2))
 
 summary(m1)
 
@@ -310,7 +205,7 @@ m2 <- readRDS("Temp/HurdleIs_RMPlusYear.rds")
 m3 <- readRDS("Temp/HurdleSanA_RMPlusYear.rds")
 
 
-p4 <- pp_check(m3)
+p4 <- pp_check(m1)
 p4+scale_x_continuous(trans="log10")
 
 summary(m2)
