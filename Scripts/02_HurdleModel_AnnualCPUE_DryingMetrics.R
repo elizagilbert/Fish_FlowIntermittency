@@ -225,7 +225,8 @@ summary(mod_mnSum) #is 1.75 parts of model did not converge - says run more iter
 # mod_brm_Age 151.24 20.60
 # mod_brm_Qlty - mod_brm_Age -23.00 6.32
 # 
-# The model with quality has a smaller WAIC. The Rhat and effective sample size look good, so I think it’s mixing well. And I think I’m using fairly classic and uninformative priors 
+# The model with quality has a smaller WAIC. The Rhat and effective sample size look good, so I think it’s mixing well. 
+# And I think I’m using fairly classic and uninformative priors 
 # 
 
 #k fold cross-validation if I can't get loo or WAIC to work
