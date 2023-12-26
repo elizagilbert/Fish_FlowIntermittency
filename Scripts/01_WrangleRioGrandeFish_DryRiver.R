@@ -71,7 +71,7 @@ dat_drying <- dat2 %>%
 #Wrangle Drying ####
 
 #daily change in river miles dry (extent - # river miles)
-ExtentChngDry <- dat_drying %>%
+ExtentChngDry_Irrig <- dat_drying %>%
   select(!X) %>% 
   filter(DryRM == 0) %>% 
   group_by(Reach, Date) %>% 
@@ -80,14 +80,15 @@ ExtentChngDry <- dat_drying %>%
   mutate(ExtentDry = replace_na(ExtentDry, 0),
          ChngExtentDry = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
   ungroup() %>% 
+  filter(between(month(Date), 4, 10)) %>% 
   group_by(Reach, year(Date)) %>% 
-  summarise(Max_Extent = max(ExtentDry), Mean_Extent = mean(ExtentDry),
-            Max_Change = max(ChngExtentDry), Mean_Change = mean(ChngExtentDry)) %>% 
+  summarise(Max_Extent = max(ExtentDry), Mean_Extent = mean(ExtentDry), SD_Extent = sd(ExtentDry),
+            Max_Change = max(ChngExtentDry), Mean_Change = mean(ChngExtentDry), SD_Change = sd(ChngExtentDry)) %>% 
   ungroup() %>% 
   rename(Year = 2)
 
 #cummulative days and length of drying
-MileDays <- dat_drying %>% 
+MileDays_Irrig <- dat_drying %>% 
   select(!X) %>% 
   filter(Date >= "2010-01-01") %>% 
   mutate(DryRM2 = case_when(DryRM == 0 ~ 1,
@@ -96,19 +97,24 @@ MileDays <- dat_drying %>%
   group_by(year(Date), Reach) %>% 
   mutate(MD = cumsum(DryRM2)/10) %>% 
   ungroup() %>% 
+  filter(between(month(Date), 4, 10)) %>% 
+  group_by(Reach, year(Date), Date) %>% 
+  summarise(Daily_MaxMileDayes = max(MD)) %>% 
+  ungroup() %>% 
   group_by(Reach, year(Date)) %>% 
-  summarise(Max_MileDays = max(MD)) %>% 
+  summarise(Max_MileDays = max(Daily_MaxMileDayes), Mean_MileDays = mean(Daily_MaxMileDayes), 
+            SD_MileDays = sd(Daily_MaxMileDayes)) %>% 
   ungroup() %>% 
   rename(Year = 2)
 
 #combine covariates to save 
-DryCovariates_ByReach <- ExtentChngDry %>% 
-  left_join(MileDays)
+DryCovariates_ByReach <- ExtentChngDry_Irrig %>% 
+  left_join(MileDays_Irrig)
 
-write.csv(DryCovariates_ByReach, "Data/Processed/RGDryCovariates_ByReach.csv", row.names = F)
+write.csv(DryCovariates_ByReach, "Data/Processed/RGDryCovariates_ByReach_Irrig.csv", row.names = F)
 
 
-dat <- read.csv("Data/Processed/RGDryCovariates_ByReach.csv")
+dat <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
 
 dat %>% 
   pivot_longer(cols = Max_Extent:Max_MileDays, names_to = "metric", values_to = "Summary") %>% 
