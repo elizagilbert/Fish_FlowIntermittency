@@ -35,8 +35,8 @@ p1 <- c(set_prior("normal(0,10)", class = "b"))
 
 #hurdle max extent #####
 start.time <- Sys.time()
-mod_maxextent<-brm(bf(CPUE_m ~ Species_Codes*Max_Extent*Reach + (1|Year) + (1|RM_Start), 
-                           hu~ Species_Codes*Max_Extent*Reach + (1|Year) + (1|RM_Start)),
+mod_maxextent<-brm(bf(CPUE_m ~ 0+ Species_Codes*Max_Extent*Reach + (1|Year) + (1|RM_Start), 
+                           hu~ 0+ Species_Codes*Max_Extent*Reach + (1|Year) + (1|RM_Start)),
                         family = hurdle_lognormal(),
                         prior = p1,
                         data=DatFishDry_RM,
