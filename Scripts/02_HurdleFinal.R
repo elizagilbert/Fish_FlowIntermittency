@@ -16,11 +16,6 @@ library(loo)
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
 datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
 
-#zeros in data ####
-NumZeros <- datfish_rm %>% 
-  group_by(Year, Species_Codes) %>% 
-  count(CPUE_m == 0) 
-
 #Wrangle data ####
 DatFishDry_RM <- datfish_rm %>% 
   left_join(datdry) %>% 
@@ -226,16 +221,9 @@ end.time.overall <- Sys.time()
 print(round(end.time.overall - start.time.overall,2))
 
 
-
-
-
-
-
-
-
 #model check ####
 #r-hat (need to be <1.01 indicating chains converged)
-summary(mod_sdMD) #okay - no divergent transitions for max, mean, sd extent or change, mean and sd MD
+summary(MaxExtent) #okay - no divergent transitions for max, mean, sd extent or change, mean and sd MD
                   #did not converge maxMD
 
 #pp_check #
@@ -255,9 +243,8 @@ p <- pp_check(mod_maxextent)
 p+scale_x_continuous(trans="log10")
 
 
-
 #Read in models ####
-#MaxExtent <- readRDS("Models/MaxExtent.rds")
+MaxExtent <- readRDS("Models/MaxExtent.rds")
 MeanExtent <- readRDS("Models/Mean_Extent.rds")
 SDExtent <- readRDS("Models/SD_Extent.rds")
 
@@ -265,14 +252,14 @@ MaxChng <- readRDS("Models/Max_Change.rds")
 MeanChng <- readRDS("Models/Mean_Change.rds")
 SDChng <- readRDS("Models/SD_Change.rds")
 
-MeanMD <- readRDS("Models/Mean_MileDays.rds")
-SDMD <- readRDS("Models/SD_MileDays.rds")
+MeanMD <- readRDS("Models/Mean_MD.rds")
+SDMD <- readRDS("Models/SD_MD.rds")
 
 #Loo ####
  #moment_match = true breaks R
 
 LooMaxExtent <- loo(MaxExtent, save_psis = T)  #3 observation pareto_k >0.7
-LooMeanExtent <- loo(MeanExtent, save_psis = T, moment_match = T) #1 observation pareto_k >0.7
+LooMeanExtent <- loo(MeanExtent, save_psis = T) #1 observation pareto_k >0.7
 LooSDExtent <- loo(SDExtent, save_psis = T) #1 observation pareto_k >0.7
 
 LooMaxChng <- loo(MaxChng, save_psis = T) #3 observation pareto_k >0.7
@@ -287,36 +274,55 @@ saveRDS(LooSDMD, "Models/LooSDMD.rds")
 print(LooSDMD)
 plot(LooSDMD)
 
-#reloo best model ####
-#set cores ####
+#reloo ####
+#set cores 
 options(mc.cores = 4)
 
-#start.time <- Sys.time()
-Reloo_MaxExtent <- loo(MaxExtent, reloo = T) #reloo to run models without the bad observations; 16.61 min with 4 cores; worked
-saveRDS(Reloo_MaxExtent, "Models/MaxExtent.rds")
-Reloo_MaxExtent <- readRDS("Models/Reloo_MaxExtent.rds")
+start.time <- Sys.time()
+Reloo_MaxExtent <- loo(MaxExtent, reloo = T) #reloo to run models without the bad observations; 2 hrs; worked
+  saveRDS(Reloo_MaxExtent, "Models/Reloo_MaxExtent.rds")
 
 Reloo_MeanExtent <- loo(MeanExtent, reloo = T) #reloo to run models without the bad observations; 16.61 min with 4 cores; worked
-saveRDS(Reloo_MeanExtent, "Models/Reloo_MeanExtent.rds")
+  saveRDS(Reloo_MeanExtent, "Models/Reloo_MeanExtent.rds")
 
 Reloo_SDExtent <- loo(SDExtent, reloo = T) #reloo to run models without the bad observations:10 mins; worked
-saveRDS(Reloo_SDExtent, "Models/Reloo_SDExtent.rds")
+  saveRDS(Reloo_SDExtent, "Models/Reloo_SDExtent.rds")
+  
+  
 
-Reloo_MaxChng <- loo(MaxChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; workekd
-saveRDS(Reloo_MaxChng, "Models/Reloo_SDExtent.rds")
+Reloo_MaxChng <- loo(MaxChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; worked
+saveRDS(Reloo_MaxChng, "Models/Reloo_MaxChng.rds")
 
 Reloo_MeanChng <- loo(MeanChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; worked
-saveRDS(Reloo_MeanChng, "Models/Reloo_SDExtent.rds")
+saveRDS(Reloo_MeanChng, "Models/Reloo_MeanChng.rds")
 
 Reloo_SDChng <- loo(SDChng, reloo = T) #reloo to run models without the bad observations: 24 mins; worked
-saveRDS(Reloo_SDChng, "Models/Reloo_SDExtent.rds")
+saveRDS(Reloo_SDChng, "Models/Reloo_SDChng.rds")
+
+
 
 Reloo_MeanMD <- loo(MeanMD, reloo = T) #reloo to run models without the bad observations; 2 hrs with 4 cores; worked
-saveRDS(Reloo_MeanMD, "Models/Reloo_MeanMD.rds")
+  saveRDS(Reloo_MeanMD, "Models/Reloo_MeanMD.rds")
+  
+end.time <- Sys.time()
+round(end.time - start.time,2) 
 
 #didn't need to reloo SDMD because it had no problems 
 
-print(MeanMD) #use print to see if any pareto k >0.7
+print(Reloo_MaxExtent) #use print to see if any pareto k >0.7
+
+#Read in reloo models ####
+Reloo_MaxExtent <- readRDS("Models/Reloo_MaxExtent.rds")
+Reloo_MeanExtent <- readRDS("Models/Reloo_MeanExtent.rds")
+Reloo_SDExtent <- readRDS("Models/Reloo_SDExtent.rds")
+
+Reloo_MaxChng <- readRDS("Models/Reloo_MaxChng.rds")
+Reloo_MeanChng <- readRDS("Models/Reloo_MeanChng.rds")
+Reloo_SDChng <- readRDS("Models/Reloo_SDChng.rds")
+
+Reloo_MeanMD <- readRDS("Models/Reloo_MeanMD.rds")
+LooSDMD <- readRDS("Models/LooSDMD.rds")
+
 
 #compare models loo #####
   #Extent
@@ -332,3 +338,9 @@ loo_compare(Reloo_MeanMD, LooSDMD)
 loo_compare(Reloo_MaxExtent, Reloo_MeanExtent, Reloo_SDExtent,
             Reloo_MaxChng, Reloo_MeanChng, Reloo_SDChng,
             Reloo_MeanMD, LooSDMD)
+
+#Predicting ####
+#https://www.google.com/search?sca_esv=594252889&rlz=1C1GCEA_enUS1082US1082&tbm=vid&q=understanding+hurdle+model+output&sa=X&ved=2ahUKEwjdxO7zw7KDAxWtMUQIHbIBBBQQ8ccDegQIDBAJ&biw=1920&bih=953&dpr=1#fpstate=ive&vld=cid:1531d1f9,vid:7tYbxkI1FNA,st:0
+ggpredict(mod, terms = ..., type = "zi_prob")
+
+conditional_effects(MaxExtent)

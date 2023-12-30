@@ -8,10 +8,26 @@ library(lubridate)
 library(brms)
 library(beepr)
 library(lme4)
+library(MASS)
+library(performance)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
-datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach.csv")
+datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
+
+#data distributions ####
+
+  #checking over dispersion (i.e., sd greater than mean)
+  #true for all fish
+datfish_rm %>% 
+  group_by(Species_Codes) %>% 
+  summarise(mnCpue = mean(CPUE_m), sdCpue = sd(CPUE_m))
+
+  #histogram
+datfish_rm %>% 
+  ggplot(aes(x = (CPUE_m)*1000))+
+  geom_histogram(binwidth = 10)+
+  facet_wrap(vars(Species_Codes), scales = "free")
 
 #Visualize fish ####
 #visualization of annual density
@@ -55,7 +71,12 @@ DatFishDry_RMNoZeros <- DatFishDry_RM %>%
   ungroup() %>% 
   mutate(MnCPUE_Plus1 = MnCPUE+0.0000001)
 
-#Modeling Lognormal Bayes ####
+#Modeling ####
+
+#checking for zero inflation in count model
+#have to use poisson
+m <- glm(CPUE_1000m ~ Species_Codes*Reach*Max_Extent, family = poisson, data = DatFishDry_RM) #'library 'MASS'
+check_zeroinflation(m) #package 'performance'
 
 #regular Bayes
 get_prior(MnCPUE_Plus1 ~ Species_Codes*Max_Extent + (1 | Year/Reach),
