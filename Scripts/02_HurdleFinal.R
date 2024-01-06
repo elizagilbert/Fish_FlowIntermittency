@@ -57,8 +57,8 @@ saveRDS(mod_maxextent, "Models/MaxExtent.rds")
 #hurdle mean extent #####
 
 start.time <- Sys.time()
-mod_meanextent<-brm(bf(CPUE_m ~ Species_Codes*Mean_Extent*Reach + (1|Year) + (1|RM_Start), 
-                      hu~ Species_Codes*Mean_Extent*Reach + (1|Year) + (1|RM_Start)),
+mod_meanextent<-brm(bf(CPUE_m ~ 0+ Species_Codes*Mean_Extent*Reach + (1|Year) + (1|RM_Start), 
+                      hu~ 0+ Species_Codes*Mean_Extent*Reach + (1|Year) + (1|RM_Start)),
                    family = hurdle_lognormal(),
                    prior = p1,
                    data=DatFishDry_RM,
@@ -70,15 +70,15 @@ mod_meanextent<-brm(bf(CPUE_m ~ Species_Codes*Mean_Extent*Reach + (1|Year) + (1|
 
 beep(1)
 end.time <- Sys.time()
-time2 <- round(end.time - start.time,2) #14.4 min
+time8 <- round(end.time - start.time,2) #14.4 min
 
 #save models #
 saveRDS(mod_meanextent, "Models/Mean_Extent.rds")
 
 #hurdle sd extent #####
 start.time <- Sys.time()
-mod_sdextent<-brm(bf(CPUE_m ~ Species_Codes*SD_Extent*Reach + (1|Year) + (1|RM_Start), 
-                       hu~ Species_Codes*SD_Extent*Reach + (1|Year) + (1|RM_Start)),
+mod_sdextent<-brm(bf(CPUE_m ~ 0+ Species_Codes*SD_Extent*Reach + (1|Year) + (1|RM_Start), 
+                       hu~ 0+Species_Codes*SD_Extent*Reach + (1|Year) + (1|RM_Start)),
                     family = hurdle_lognormal(),
                     prior = p1,
                     data=DatFishDry_RM,
@@ -90,15 +90,15 @@ mod_sdextent<-brm(bf(CPUE_m ~ Species_Codes*SD_Extent*Reach + (1|Year) + (1|RM_S
 
 beep(1)
 end.time <- Sys.time()
-time3 <- round(end.time - start.time,2) #15.8 min
+time7 <- round(end.time - start.time,2) #15.8 min
 
 #save models #
 saveRDS(mod_sdextent, "Models/SD_Extent.rds")
 
 #hurdle max change #####
 start.time <- Sys.time()
-mod_maxchng<-brm(bf(CPUE_m ~ Species_Codes*Max_Change*Reach + (1|Year) + (1|RM_Start), 
-                     hu~ Species_Codes*Max_Change*Reach + (1|Year) + (1|RM_Start)),
+mod_maxchng<-brm(bf(CPUE_m ~ 0+ Species_Codes*Max_Change*Reach + (1|Year) + (1|RM_Start), 
+                     hu~ 0+Species_Codes*Max_Change*Reach + (1|Year) + (1|RM_Start)),
                   family = hurdle_lognormal(),
                   prior = p1,
                   data=DatFishDry_RM,
@@ -110,33 +110,34 @@ mod_maxchng<-brm(bf(CPUE_m ~ Species_Codes*Max_Change*Reach + (1|Year) + (1|RM_S
 
 beep(1)
 end.time <- Sys.time()
-time4 <- round(end.time - start.time,2) #11.5 min
+time6 <- round(end.time - start.time,2) #11.5 min
 #save models #
 saveRDS(mod_maxchng, "Models/Max_Change.rds")
 
 #hurdle mean change #####
-start.time <- Sys.time()
-mod_meanchng<-brm(bf(CPUE_m ~ Species_Codes*Mean_Change*Reach + (1|Year) + (1|RM_Start), 
-                    hu~ Species_Codes*Mean_Change*Reach + (1|Year) + (1|RM_Start)),
-                 family = hurdle_lognormal(),
-                 prior = p1,
-                 data=DatFishDry_RM,
-                 chains = 3,
-                 warmup = 500,
-                 iter=4000,
-                 sample_prior = TRUE,
-                 cores = 4)
-
-beep(1)
-end.time <- Sys.time()
-time5 <- round(end.time - start.time,2) #1.64 hrs
+#DONT RERUN- I CANT' GET IT TO CONVERGE AGAIN
+# start.time <- Sys.time()
+# mod_meanchng<-brm(bf(CPUE_m ~ 0+ Species_Codes*Mean_Change*Reach + (1|Year) + (1|RM_Start),
+#                     hu~ 0+Species_Codes*Mean_Change*Reach + (1|Year) + (1|RM_Start)),
+#                  family = hurdle_lognormal(),
+#                  prior = p1,
+#                  data=DatFishDry_RM,
+#                  chains = 3,
+#                  warmup = 500,
+#                  iter=4000,
+#                  sample_prior = TRUE,
+#                  cores = 4)
+# 
+# beep(1)
+# end.time <- Sys.time()
+# time5 <- round(end.time - start.time,2) #1.64 hrs
 #save models #
-saveRDS(mod_meanchng, "Models/Mean_Change.rds")
+#saveRDS(mod_meanchng, "Models/Mean_Change.rds")
 
 #hurdle sd change #####
 start.time <- Sys.time()
-mod_sdchng<-brm(bf(CPUE_m ~ Species_Codes*SD_Change*Reach + (1|Year) + (1|RM_Start), 
-                     hu~ Species_Codes*SD_Change*Reach + (1|Year) + (1|RM_Start)),
+mod_sdchng<-brm(bf(CPUE_m ~ 0+ Species_Codes*SD_Change*Reach + (1|Year) + (1|RM_Start), 
+                     hu~ 0+Species_Codes*SD_Change*Reach + (1|Year) + (1|RM_Start)),
                   family = hurdle_lognormal(),
                   prior = p1,
                   data=DatFishDry_RM,
@@ -148,38 +149,37 @@ mod_sdchng<-brm(bf(CPUE_m ~ Species_Codes*SD_Change*Reach + (1|Year) + (1|RM_Sta
 
 beep(1)
 end.time <- Sys.time()
-time3 <- round(end.time - start.time,2) #13.05 min
+time4 <- round(end.time - start.time,2) #13.05 min
 #save models #
 saveRDS(mod_sdchng, "Models/SD_Change.rds")
 
 
 
 
-#start time #####
-start.time.overall <- Sys.time()
 #hurdle max MD ####
-start.time <- Sys.time()
-mod_maxMD<-brm(bf(CPUE_m ~ Species_Codes*Max_MileDays*Reach + (1|Year) + (1|RM_Start), 
-                      hu~ Species_Codes*Max_MileDays*Reach + (1|Year) + (1|RM_Start)),
-                   family = hurdle_lognormal(),
-                   prior = p1,
-                   data=DatFishDry_RM,
-                   chains = 3,
-                   warmup = 500,
-                   iter=4000,
-                   sample_prior = TRUE,
-                   cores = 4)
-
-beep(1)
-end.time <- Sys.time()
-time1 <- round(end.time - start.time,2) 
+#maxMD doesn't converge
+# start.time <- Sys.time()
+# mod_maxMD<-brm(bf(CPUE_m ~ 0+ Species_Codes*Max_MileDays*Reach + (1|Year) + (1|RM_Start),
+#                       hu~ 0+ Species_Codes*Max_MileDays*Reach + (1|Year) + (1|RM_Start)),
+#                    family = hurdle_lognormal(),
+#                    prior = p1,
+#                    data=DatFishDry_RM,
+#                    chains = 3,
+#                    warmup = 500,
+#                    iter=4000,
+#                    sample_prior = TRUE,
+#                    cores = 4)
+# 
+# beep(1)
+# end.time <- Sys.time()
+# time1 <- round(end.time - start.time,2)
 
 #save models #
-saveRDS(mod_maxMD, "Models/Max_MileDays.rds")
+#saveRDS(mod_maxMD, "Models/Max_MileDays.rds")
 #hurdle mean MD ####
 start.time <- Sys.time()
-mod_meanMD<-brm(bf(CPUE_m ~ Species_Codes*Mean_MileDays*Reach + (1|Year) + (1|RM_Start), 
-                  hu~ Species_Codes*Mean_MileDays*Reach + (1|Year) + (1|RM_Start)),
+mod_meanMD<-brm(bf(CPUE_m ~ 0+ Species_Codes*Mean_MileDays*Reach + (1|Year) + (1|RM_Start), 
+                  hu~ 0+Species_Codes*Mean_MileDays*Reach + (1|Year) + (1|RM_Start)),
                family = hurdle_lognormal(),
                prior = p1,
                data=DatFishDry_RM,
@@ -187,19 +187,20 @@ mod_meanMD<-brm(bf(CPUE_m ~ Species_Codes*Mean_MileDays*Reach + (1|Year) + (1|RM
                warmup = 500,
                iter=4000,
                sample_prior = TRUE,
-               cores = 4)
+               cores = 4,
+               control = list(max_treedepth = 13))
 
 beep(1)
 end.time <- Sys.time()
-time2 <- round(end.time - start.time,2) 
+time2 <- round(end.time - start.time,2) #47 minutes
 
 #save models #
 saveRDS(mod_meanMD, "Models/Mean_MileDays.rds")
 
 #hurdle sd MD ####
 start.time <- Sys.time()
-mod_sdMD<-brm(bf(CPUE_m ~ Species_Codes*SD_MileDays*Reach + (1|Year) + (1|RM_Start), 
-                   hu~ Species_Codes*SD_MileDays*Reach + (1|Year) + (1|RM_Start)),
+mod_sdMD<-brm(bf(CPUE_m ~ 0+ Species_Codes*SD_MileDays*Reach + (1|Year) + (1|RM_Start), 
+                   hu~ 0+Species_Codes*SD_MileDays*Reach + (1|Year) + (1|RM_Start)),
                 family = hurdle_lognormal(),
                 prior = p1,
                 data=DatFishDry_RM,
@@ -207,32 +208,37 @@ mod_sdMD<-brm(bf(CPUE_m ~ Species_Codes*SD_MileDays*Reach + (1|Year) + (1|RM_Sta
                 warmup = 500,
                 iter=4000,
                 sample_prior = TRUE,
-                cores = 4)
+                cores = 4,
+              control = list(max_treedepth = 13))
 
 beep(1)
 end.time <- Sys.time()
-time3 <- round(end.time - start.time,2) 
+time3 <- round(end.time - start.time,2) #34 minutes
 
 #save models #
 saveRDS(mod_sdMD, "Models/SD_MileDays.rds")
 
-#end time #####
-end.time.overall <- Sys.time()
-print(round(end.time.overall - start.time.overall,2))
-
-
 #model check ####
 #r-hat (need to be <1.01 indicating chains converged)
-summary(MaxExtent) #okay - no divergent transitions for max, mean, sd extent or change, mean and sd MD
+summary(mod_meanMD) #okay - no divergent transitions for max, mean, sd extent or change, mean and sd MD
                   #did not converge maxMD
 
 #pp_check #
 #max,mean, sd extent or change have same okayness with a little bit of wonkyness
-pmod <- pp_check(mod_sdMD, ndraws = 100, type = "dens_overlay_grouped", group = "Species_Codes")
+pmod <- pp_check(mod_sdextent, ndraws = 100, type = "dens_overlay_grouped", group = "Species_Codes")
 pmod+scale_x_continuous(trans="log10")
 
 p <- pp_check(mod_maxextent)
 p+scale_x_continuous(trans="log10")
+
+t <- pp_check(mod_sdextent, type = "boxplot")
+t+scale_y_continuous(trans = "log10")
+
+t2 <- pp_check(mod_sdextent, type = "hist")
+t2+scale_x_continuous(trans="log10")
+
+pp_check(mod_sdextent, type="stat_grouped", stat = "mean", group = "Species_Codes")
+
 
 #pp_check #
 #works in as much as just one peak with a little wonkyness, not any better or worse than nested
@@ -249,7 +255,7 @@ MeanExtent <- readRDS("Models/Mean_Extent.rds")
 SDExtent <- readRDS("Models/SD_Extent.rds")
 
 MaxChng <- readRDS("Models/Max_Change.rds")
-MeanChng <- readRDS("Models/Mean_Change.rds")
+#MeanChng <- readRDS("Models/Mean_Change.rds")
 SDChng <- readRDS("Models/SD_Change.rds")
 
 MeanMD <- readRDS("Models/Mean_MD.rds")
@@ -258,12 +264,12 @@ SDMD <- readRDS("Models/SD_MD.rds")
 #Loo ####
  #moment_match = true breaks R
 
-LooMaxExtent <- loo(MaxExtent, save_psis = T)  #3 observation pareto_k >0.7
+LooMaxExtent <- loo(MaxExtent, save_psis = T)  #2 observation pareto_k >0.7
 LooMeanExtent <- loo(MeanExtent, save_psis = T) #1 observation pareto_k >0.7
 LooSDExtent <- loo(SDExtent, save_psis = T) #1 observation pareto_k >0.7
 
 LooMaxChng <- loo(MaxChng, save_psis = T) #3 observation pareto_k >0.7
-LooMeanChng <- loo(MeanChng, save_psis = T) #1 observation pareto_k >0.7
+#LooMeanChng <- loo(MeanChng, save_psis = T) #1 observation pareto_k >0.7
 LooSDChng <- loo(SDChng, save_psis = T) #2 observation pareto_k >0.7
 
 LooMeanMD <- loo(MeanMD, save_psis = T) #1 observation pareto_k >0.7
@@ -293,8 +299,8 @@ Reloo_SDExtent <- loo(SDExtent, reloo = T) #reloo to run models without the bad 
 Reloo_MaxChng <- loo(MaxChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; worked
 saveRDS(Reloo_MaxChng, "Models/Reloo_MaxChng.rds")
 
-Reloo_MeanChng <- loo(MeanChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; worked
-saveRDS(Reloo_MeanChng, "Models/Reloo_MeanChng.rds")
+# Reloo_MeanChng <- loo(MeanChng, reloo = T) #reloo to run models without the bad observations: 2 hrs; worked
+# saveRDS(Reloo_MeanChng, "Models/Reloo_MeanChng.rds")
 
 Reloo_SDChng <- loo(SDChng, reloo = T) #reloo to run models without the bad observations: 24 mins; worked
 saveRDS(Reloo_SDChng, "Models/Reloo_SDChng.rds")

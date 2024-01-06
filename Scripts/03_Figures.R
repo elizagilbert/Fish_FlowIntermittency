@@ -1,10 +1,12 @@
 #Read me ####
 #The purpose of this script is to develop figures for the manuscript
 
-#Libararies ####
+#Libraries ####
 library(tidyverse)
 library(lubridate)
-#library(plyr) #this overwrites a number of functions from dplyr so need to call it specifically from dplyr
+library(plyr) #this overwrites a number of functions from dplyr so need to call it specifically from dplyr
+library(brms)
+library(scales)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
@@ -27,13 +29,18 @@ datfish_rm %>%
                                                    "GAMAFF" , "CYPLUT", "HYBAMA" , "CARCAR" ))),
          Reach = as.factor(Reach)) %>% 
   ggplot(aes(x = (CPUE_m*100), fill = Reach))+
-  geom_histogram(alpha = 0.5)+
+  geom_histogram()+
   facet_wrap(vars(Species_Codes), scales = "free", labeller = labeller(Species_Codes= newlabels))+
   xlab (expression(paste("Density (#/", m^2, ")", sep="")))+ 
   ylab("Count")+
   theme_classic()+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
-                     labels = c("Upper", "Lower"))
+                     labels = c("Upper", "Lower"))+
+  theme(
+    legend.position = c(1,0), # bottom right position
+    legend.justification = c(1, 0), # bottom right justification
+    legend.box.margin = margin(5, l = 5, unit = "mm") # small margin
+  )
 dev.off()
 
 datfish_rm %>% 
@@ -84,7 +91,7 @@ cbind(ExtentChngDry_Irrig, KiloMDays_Irrig) %>%
   geom_line(size = 1)+
   facet_grid(Metric~Year, scales = "free", labeller = labeller(Metric= newlabels2))+
   theme_classic()+
-  xlab("Day of year") + ylab("Value")+
+  xlab("Day of year") + ylab("Kilometers")+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
                      labels = c("Upper", "Lower"))
 dev.off()
@@ -182,15 +189,20 @@ newlabels<- c("CYPLUT" = "Red Shiner", "CYPCAR" = "Common Carp",
 tiff("Figures/Predicted_MaxExtent.jpg", units= "in", width = 8, height = 6, res = 600)
 stats_epredp %>% 
   ggplot(aes(x = Max_Extent, y = mean, color = Reach, fill = Reach))+
-  geom_line(size = 1)+
-  geom_ribbon(aes(ymin=CI_L, ymax=CI_U, group = Reach), alpha = 0.4, size = 0.5)+
+  geom_line(linewidth = 1)+
+  geom_ribbon(aes(ymin=CI_L, ymax=CI_U, group = Reach), alpha = 0.6, size = 0.5)+
   facet_wrap(vars(Species), scales = "free_y", labeller = labeller(Species= newlabels))+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
   ylab (expression(paste("Density (#/", m^2, ")", sep="")))+
-  xlab("Maximum extent (km)")
+  xlab("Maximum extent (km)")+
+  theme(
+    legend.position = c(1,0), # bottom right position
+    legend.justification = c(1, 0), # bottom right justification
+    legend.box.margin = margin(5, l = 5, unit = "mm") # small margin
+  )
 dev.off()            
 
 
