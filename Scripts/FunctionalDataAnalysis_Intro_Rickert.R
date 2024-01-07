@@ -23,7 +23,7 @@ basis <-  create.bspline.basis(c(min(time_basis),max(time_basis)),n_basis,n_orde
   #nbasis is 23 this means there are 23 vectors
 
 #use eval.basis() to evalute the basis functions at the times (n_obs)
-#where our data curve was observed. The matric PHI will
+#where our data curve was observed. The matrix PHI will
 #contain the values of the 23 basis functions evaluated at 80 points
 #randomly placed between 0-100
 

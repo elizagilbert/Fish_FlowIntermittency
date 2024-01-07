@@ -5,6 +5,8 @@
 library(tidyverse)
 library(lubridate)
 library(fda) #seems like it messes up some tidy functions like "complete" and maybe "select"
+library(reshape2)
+library(wesanderson) #colors
 
 #data ####
 dat2 <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv")
@@ -69,38 +71,80 @@ DryingDat %>%
   geom_line()+
   facet_wrap(vars(Reach))
 
-#fda####
+#fda 2020 only ####
 fda_extent <- ExtentChngDry_Irrig %>% 
   filter(Reach == "Isleta" & between(Date, as.Date("2020-04-05"), as.Date("2020-10-31"))) %>%  #has to be divisible by 5
   dplyr:: select(Date, ExtentDry)
 
-
 time_span <- length(fda_extent$Date) #this has to be divisible by 5
-time_basis <- seq(0, time_span, 1) #seq 0 to 100 by 1s - if I do this as date, I have to add "1" as another date 
-knots <- seq(0, time_span, 5) #seq 0 to 100 by 5s
+time_basis <- seq(0, time_span, 1) #seq 0 to timespan by 1s 
+knots <- seq(0, time_span, 5) #seq 0 to timespan by 5s
 n_knots <- (length(knots))
 n_order <- 4 #order of basis functions: cubic bspline order = 3+1
 n_basis = length(knots) - 2 + n_order #from Ramsay, p.35 the number of basis functions = order + number of interior knots 
-                                    #(interior knots are always 2 less than total) because outer and inner not counted
-basis <-  create.bspline.basis(c(min(time_basis),max(time_basis)),n_basis,n_order,knots)
+              #(interior knots are always 2 less than total) because outer and inner not counted
+basis_my <-  create.bspline.basis(c(min(time_basis),max(time_basis)),n_basis,n_order,knots)
+plot(basis_my)
 
-#plotting basis
+time2 <- seq(0,(length(fda_extent$Date)-1), 1)
 
-plot(basis)
+#estimating the coefficients and function values with a single line of code using smooth.basis()
+#this takes the arguments argvals (the times we want to use for evaluation as a vecotr), the y (the observed values) 
+#and fdParobj (an fda object containing the basis elements)
+extent_obj <- smooth.basis(argvals = time2, y = fda_extent$ExtentDry, fdParobj = basis_my)
 
-#use eval.basis() to evalute the basis functions at the times (n_obs)
-#where our data curve was observed. The matric PHI will
-#contain the values of the 45 basis functions evaluated at 210 points
-#placed between min and max dates
+plot(time2, fda_extent$ExtentDry, type = "l", xlab = "time", ylab = "f(time)", 
+     main = "fda package smoothing estimates", col = "grey")
+lines(extent_obj, lwd = 1, col = "blue")
 
-PHI <- eval.basis(evalarg = fda_extent$ExtentDry, basisobj = basis) #so 210 rows evaluation and 45 columns basis functions
+#fda all years ####
 
-knots_dates <- seq(min(fda_extent$Date), max(fda_extent$Date), by = '5 days')
+#Step 2 functional smoothing #####
+Edat_df <- ExtentChngDry_Irrig %>%   
+  mutate(Year = year(Date), DOY = yday(Date),
+         DOY_2 = case_when(Year == 2012 | Year == 2016 | Year == 2020 ~ DOY-1,
+                   TRUE ~ DOY)) %>% 
+  group_by(Year) %>% 
+  filter(Reach == "Isleta" & between(DOY_2, 95,304)) %>%   #has to be divisible by 5
+  pivot_wider(id_cols = DOY_2, names_from = Year, values_from = ExtentDry)
 
-matplot(fda_extent$Date,PHI, type='l', lwd=2, xlab='time',ylab='basis',cex.lab=1,cex.axis=1)
 
-for (i in 1:knots_dates)
-{
-  abline(v=knots_dates[i], lty=2, lwd=0.5)
-}
+time_span1 <- length(Edat_df$DOY_2) #this has to be divisible by 5
+time_basis1 <- seq(0, time_span1, 1) #seq 0 to timespan by 1s 
+knots1 <- seq(0, time_span1, 5) #seq 0 to timespan by 5s
+n_knots1 <- (length(knots1))
+n_order1 <- 4 #order of basis functions: cubic bspline order = 3+1
+n_basis1 = length(knots1) - 2 + n_order1 #from Ramsay, p.35 the number of basis functions = order + number of interior knots 
+#(interior knots are always 2 less than total) because outer and inner not counted
+basis_my1 <-  create.bspline.basis(c(min(time_basis1),max(time_basis1)),n_basis1,n_order1,knots1)
+plot(basis_my1)
 
+#need matrix
+Edat_mat <- as.matrix(Edat_df %>% 
+                        dplyr::select(!DOY_2))
+
+#setup smoothing parameters - not sure how you choose the Lfdobj or the lambda
+#fdobj: is the basis functions to use
+#Lfdobj: is the derivative degree to smooth
+#lambda: is the smoothing penalty
+smoothPar = fdPar(fdobj = basis_my1, Lfdobj=2, lambda=1)
+
+#smoothed functional data
+dat_fd = smooth.basis(argvals = time2, y = Edat_mat, fdParobj = smoothPar)
+
+'-----------------------------------------------------------------------------'
+obs_fd = eval.fd(evalarg = time2, fdobj = dat_fd$fd)
+
+obs_fd = as.data.frame(obs_fd)
+obs_fd$DayOfYear = Edat_df$DOY_2
+obs_fd_df = melt(obs_fd, measure.vars = 1:12)
+colnames(obs_fd_df) = c("DayOfYear", "Year", "ExtentDry")
+
+pal <- rev(wes_palette("Zissou1", n=length(unique(obs_fd_df$Year)), type = "continuous"))
+
+ggplot(data=obs_fd_df) + 
+  geom_line(aes(x=DayOfYear, y=ExtentDry, colour=Year), 
+            linewidth=1, na.rm = T) +
+  scale_color_manual(values = pal) +
+  theme_classic(base_size = 14)+
+  xlab("Day of Year - Isleta")
