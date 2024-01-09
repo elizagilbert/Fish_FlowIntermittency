@@ -1,7 +1,12 @@
 #Read me ####
 #the purpose of this code is to understand the curves in the drying metrics
 
+
 #Libraries ####
+# install.packages("devtools")
+# require(devtools)
+# install_version("fda", version = "5.1.4") #need to install this version or things get weird with the CV and lambda
+
 library(tidyverse)
 library(lubridate)
 library(fda) #seems like it messes up some tidy functions like "complete" and maybe "select"
@@ -14,6 +19,7 @@ dat_drying <- dat2 %>%
   mutate(Reach = case_when(RMTenthDry < 116 ~ "San Acacia",
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
+datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv")
 
 #wrangle ####
 #daily change in river miles dry (extent - # river miles)
@@ -120,8 +126,7 @@ basis_my1 <-  create.bspline.basis(c(min(time_basis1),max(time_basis1)),n_basis1
 plot(basis_my1)
 
 #need matrix
-Edat_mat <- as.matrix(Edat_df %>% 
-                        dplyr::select(!DOY_2))
+Edat_mat <- as.matrix(Edat_df %>% dplyr::select(!DOY_2))
 
 #setup smoothing parameters - not sure how you choose the Lfdobj or the lambda
 #fdobj: is the basis functions to use
@@ -148,3 +153,49 @@ ggplot(data=obs_fd_df) +
   scale_color_manual(values = pal) +
   theme_classic(base_size = 14)+
   xlab("Day of Year - Isleta")
+
+#scalar on function regression CARCAR ####
+
+#obtain the annual abundance of fish at Isleta - # years = 12
+abund_CARCAR <- datfish %>% 
+  filter(Species_Codes == "CARCAR" & Reach == "Isleta") %>% 
+  select(Year, CPUE_m) %>% 
+  group_by(Year) %>% 
+  summarise(MnCPUE = mean(CPUE_m, na.rm = T))
+
+CARCAR <- abund_CARCAR %>% pull(MnCPUE, Year)
+
+
+#define the bspline basis functions
+basis_my1 <-  create.bspline.basis(c(min(time_basis1),max(time_basis1)),n_basis1,n_order1,knots1) #from above
+
+#smooth predictor data
+smoothPar <-  fdPar(fdobj = basis_my1, Lfdobj=2, lambda=1) #from above
+smoothPar <- smoothPar$fd
+
+templist       <-  vector("list",2)
+templist[[1]]  <-  rep(1,12) # the first functional covariate
+templist[[2]]  <-  smoothPar  # the second functional covariate
+
+#create a constant basis for the intercept  
+conbasis   = create.constant.basis(c(0,210)) #this might not be right
+
+plot(conbasis)
+  
+#combine constant and basis functions into list for regression
+betalist1  <-  vector("list",2)
+betalist1[[1]] <-  conbasis
+betalist1[[2]] <-  basis_my1
+  
+# fit the functional linear model 
+fRegressList1  <-  fRegress(CARCAR,templist,betalist1) #bad xfdlist which is the templist 
+ #incorrect number of replications in XFDLIST for covariate #2
+ #I think I need to figure out how to names each year in the basis to get the 12 replicates of 12 years
+ #In Cao's and in Ramsay the object is called day.5 and I need to figure out how it was 
+ #made and what is in it
+names(fRegressList1)
+betaestlist1   <-  fRegressList1$betaestlist
+length(betaestlist1)
+  
+  
+  
