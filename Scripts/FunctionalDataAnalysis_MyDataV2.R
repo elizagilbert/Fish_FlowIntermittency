@@ -16,7 +16,7 @@ library(wesanderson) #colors
 #wrangle fish ####
 datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>% 
   group_by(Species_Codes, Year, Reach) %>% 
-  summarise(MnCPUE = mean(CPUE_m, na.rm = T)) %>% 
+  summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*1000)) %>% 
   ungroup() %>% 
   mutate(LogMean = log10(MnCPUE+0.001))
 
@@ -30,7 +30,7 @@ dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDry
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Yr <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "Isleta") %>% 
+  filter(DryRM == 0 & Reach == "San Acacia") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -42,23 +42,50 @@ ExtIsleta_Yr <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
+ExtIsleta_Irrig <- dat_drying %>%
+  dplyr::select(!X) %>% 
+  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  ungroup() %>% 
+  filter(between(month(Date),6,10)) %>% 
+  select(Year, ExtentDry, MnDay) %>% 
+  filter(MnDay != "Feb29") %>% 
+  pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
+
 #fda ####
-#1)get log abundance and put into named number
+#1)get log abundance and put into named number ####
 Carcar_Isleta <- datfish %>% 
-  filter(Species_Codes == "CARCAR" & Reach == "Isleta") %>% 
+  filter(Species_Codes == "PLAGRA" & Reach == "San Acacia") %>% 
   select(Year, LogMean) %>% 
   pull(LogMean, Year) #makes a named number using Year to name row
 
 ny <- length(Carcar_Isleta) #length of y data
 
-#2) create functional covariate for predictor data
-ExtIsleta_basis <- create.bspline.basis(c(0,365), norder = 4, breaks = seq(0,365,5)) #don't add penalties or lambda to keep data information
+#2) create functional covariate for predictor data ####
+ 
+  #for irrigation season
+ExtIsleta_basis <- create.bspline.basis(c(1,153), norder = 4, breaks = seq(1,153,3)) #don't add penalties or lambda to keep data information
+plot(ExtIsleta_basis)
+
+ExtIsleta_smooth <- smooth.basis(seq(1,153,1), ExtIsleta_Irrig, ExtIsleta_basis)
+ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
+
+plot(ExtIsleta_smooth_fd)
+
+ #for the entire year
+ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,10)) #don't add penalties or lambda to keep data information
 plot(ExtIsleta_basis)
 
 ExtIsleta_smooth <- smooth.basis(day.5, ExtIsleta_Yr, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
 plot(ExtIsleta_smooth_fd)
+
 
 #3) create list of functional covarites
 ExtIsleta_list <- vector("list", 2)
@@ -75,7 +102,7 @@ betalist1[[2]] <- betabasis
 
 #5) Choose Smoothing Parameters using cross-validation
 
-loglam = seq(5,15,0.5)
+loglam = seq(1,15,0.5)
 nlam   = length(loglam)
 SSE.CV = rep(NA,nlam)
 for (ilam in 1:nlam) {
@@ -93,7 +120,7 @@ plot(loglam, SSE.CV, type="b", lwd=2,
      ylab="Cross-validation score", cex.lab=2,cex.axis=2)
 
 #6) Run regression with lambda 
-lambda = 10^10.5
+lambda = 10^8
 betafdPar  = fdPar(betabasis, 2, lambda)
 
 betalist2 <- betalist1
@@ -120,19 +147,18 @@ nbasis <- ExtIsleta_smooth$fd$basis$nbasis
 (Fratio2  <-  ((SSE0-SSE2)/(AnnCarcarExtIsleta$df-1))/(SSE2/(ny-AnnCarcarExtIsleta$df)))
 
 # 95% quantile 
-qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
+(qFratio <- qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
 
-# Fratio >>qf(0.95,nbasis-1,ny-nbasis) -># indicating that x_i(t) has a significant effect on y_i
-# but here Fratio is << qf and thus extent drying no significant effect on y_i
+Fratio2 > qFratio #if false no significant, if true significant
 
 # calculate the p-value
 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
 # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
-F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
-F.res$Fobs
-F.res$qval
+# F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
+# F.res$Fobs
+# F.res$qval
 
 #plotting ####
 #8) plot beta(t)
@@ -158,8 +184,8 @@ y2cMap  = ExtIsleta_smooth$y2cMap
 
 # # obtain point-wise standard error for beta(t)
 -----------------------------------------
-#NOT WORKING BECAUSE IT SAYS NON-CONFORMABLE ARGUMENTS
-# stderrList = fRegress.stderr(AnnCarcarExtIsleta, y2cMap, SigmaE) 
+#NOT WORKING BECAUSE IT SAYS NON-CONFORMABLE ARGUMENTS - might be something I coded
+stderrList = fRegress.stderr(AnnCarcarExtIsleta, y2cMap, SigmaE) 
 ------------------------------------------
 # 
 # betafdPar      = betaest_Carcar_ExtIsleta[[2]]
@@ -167,8 +193,8 @@ y2cMap  = ExtIsleta_smooth$y2cMap
 # betastderrList = stderrList$betastderrlist
 # betastderrfd   = betastderrList[[2]]
 
-# 
+#
 # plot(betafd, xlab="Day", ylab="Temperature Reg. Coeff.",
 #      ylim=c(-6e-4,1.2e-03), lwd=2,cex.lab=2,cex.axis=2)
 # lines(betafd+2*betastderrfd, lty=2, lwd=2)
-# lines(betafd-2*betastderrfd, lty=2, lwd=2) 
+# lines(betafd-2*betastderrfd, lty=2, lwd=2)
