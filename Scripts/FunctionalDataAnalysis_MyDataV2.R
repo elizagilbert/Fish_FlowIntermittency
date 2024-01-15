@@ -78,7 +78,7 @@ ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 plot(ExtIsleta_smooth_fd)
 
  #for the entire year
-ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,10)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,5)) #don't add penalties or lambda to keep data information
 plot(ExtIsleta_basis)
 
 ExtIsleta_smooth <- smooth.basis(day.5, ExtIsleta_Yr, ExtIsleta_basis)
@@ -100,27 +100,46 @@ betalist1 <- vector("list", 2)
 betalist1[[1]] <- conbasis
 betalist1[[2]] <- betabasis
 
-#5) Choose Smoothing Parameters using cross-validation
+#5) Choose Smoothing Parameters using cross-validation ####
+# 
+# loglam = seq(1,15,0.5)
+# nlam   = length(loglam)
+# SSE.CV = rep(NA,nlam)
+# for (ilam in 1:nlam) {
+#   print(paste("log lambda =", loglam[ilam]))
+#   lambda     = 10^(loglam[ilam])
+#   betalisti  = betalist1
+#   betalisti[[2]] = fdPar(betabasis, 2, lambda)
+#   fRegi          = fRegress.CV(Carcar_Isleta, ExtIsleta_list, betalisti)
+#   SSE.CV[ilam]   = fRegi$SSE.CV
+# }
+# 
+# par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
+# plot(loglam, SSE.CV, type="b", lwd=2,
+#      xlab="log smoothing parameter lambda",
+#      ylab="Cross-validation score", cex.lab=2,cex.axis=2)
 
-loglam = seq(1,15,0.5)
-nlam   = length(loglam)
-SSE.CV = rep(NA,nlam)
+loglam        = seq(1,15,0.5)
+nlam          = length(loglam)
+dfsave        = rep(NA,nlam)
+names(dfsave) = loglam
+gcvsave       = dfsave
 for (ilam in 1:nlam) {
-  print(paste("log lambda =", loglam[ilam]))
-  lambda     = 10^(loglam[ilam])
-  betalisti  = betalist1
-  betalisti[[2]] = fdPar(betabasis, 2, lambda)
-  fRegi          = fRegress.CV(Carcar_Isleta, ExtIsleta_list, betalisti)
-  SSE.CV[ilam]   = fRegi$SSE.CV
+  cat(paste('log10 lambda =',loglam[ilam],'\n'))
+  lambda        = 10^loglam[ilam]
+  fdParobj      = fdPar(betabasis, 2, lambda)
+  smoothlist    = smooth.basis(seq(1,153,1), ExtIsleta_Irrig,
+                               fdParobj)
+  dfsave[ilam]  = smoothlist$df
+  gcvsave[ilam] = sum(smoothlist$gcv)
 }
 
-par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
-plot(loglam, SSE.CV, type="b", lwd=2,
-     xlab="log smoothing parameter lambda",
-     ylab="Cross-validation score", cex.lab=2,cex.axis=2)
+plot(loglam, gcvsave, type='b', lwd=2, ylab='GCV Criterion',
+     xlab=expression(log[10](lambda)) )
 
-#6) Run regression with lambda 
-lambda = 10^8
+
+#6) Run regression with lambda ####
+lambda = 10^4
 betafdPar  = fdPar(betabasis, 2, lambda)
 
 betalist2 <- betalist1
@@ -135,7 +154,7 @@ betaest_Carcar_ExtIsleta <- AnnCarcarExtIsleta$betaestlist #getting beta(t)
 chat2_Carcar_ExtIsleta <- AnnCarcarExtIsleta$yhatfdobj #getting fitted value yhat
 print(AnnCarcarExtIsleta$df) #getting effective degrees of freedom
 
-# F test for the overall effect of x_i(t)
+# F test for the overall effect of x_i(t) #####
 # H0: y = alpha + \epsilon
 # H1: y = alpha + \int [beta(t)x(t)]dt + epsilon
 
@@ -171,30 +190,27 @@ plot(chat2_Carcar_ExtIsleta, Carcar_Isleta, lwd=2,cex.lab=2,cex.axis=2)
 abline(lm(Carcar_Isleta~chat2_Carcar_ExtIsleta), lty='dashed', lwd=2)
 abline(0,1,lty=1, lwd=2,col="red")
 
-#9) confidence intervals
+#9) confidence intervals ####
 # fitted residuals
 resid   = Carcar_Isleta - chat2_Carcar_ExtIsleta
 
 # estimate sigma^2
-SigmaE. = sum(resid^2)/(35-AnnCarcarExtIsleta$df)
-SigmaE  = SigmaE.*diag(rep(1,35))
+SigmaE. = sum(resid^2)/(12-AnnCarcarExtIsleta$df)
+SigmaE  = SigmaE.*diag(rep(1,12))
 
 # for smoothing temperature chat = a matrix * y
 y2cMap  = ExtIsleta_smooth$y2cMap
 
 # # obtain point-wise standard error for beta(t)
------------------------------------------
-#NOT WORKING BECAUSE IT SAYS NON-CONFORMABLE ARGUMENTS - might be something I coded
-stderrList = fRegress.stderr(AnnCarcarExtIsleta, y2cMap, SigmaE) 
-------------------------------------------
-# 
-# betafdPar      = betaest_Carcar_ExtIsleta[[2]]
-# betafd         = betafdPar$fd
-# betastderrList = stderrList$betastderrlist
-# betastderrfd   = betastderrList[[2]]
+stderrList <-  fRegress.stderr(AnnCarcarExtIsleta, y2cMap, SigmaE) 
 
-#
-# plot(betafd, xlab="Day", ylab="Temperature Reg. Coeff.",
-#      ylim=c(-6e-4,1.2e-03), lwd=2,cex.lab=2,cex.axis=2)
-# lines(betafd+2*betastderrfd, lty=2, lwd=2)
-# lines(betafd-2*betastderrfd, lty=2, lwd=2)
+betafdPar      = betaest_Carcar_ExtIsleta[[2]]
+betafd         = betafdPar$fd
+betastderrList = stderrList$betastderrlist
+betastderrfd   = betastderrList[[2]]
+
+plot(betafd, xlab="Day", ylab="Drying Metric Coeff.")
+ lines(betafd+2*betastderrfd, lty=2, lwd=2)
+ lines(betafd-2*betastderrfd, lty=2, lwd=2)
+
+
