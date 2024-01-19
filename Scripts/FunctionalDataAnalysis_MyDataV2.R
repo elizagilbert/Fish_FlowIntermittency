@@ -57,43 +57,45 @@ ExtIsleta_Irrig <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
-MD_Irrig <- dat_drying %>%  
-  select(!X) %>%  
-  filter(Date >= "2010-01-01" & Reach == "San Acacia") %>%  
-  mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
-  arrange(Date, RMTenthDry) %>%  
-  group_by(year(Date), Reach) %>%  
-  mutate(MD = cumsum(DryRM2)/10) %>%  
-  ungroup() %>%  
-  filter(between(month(Date), 4, 10)) %>%  
-  group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = max(MD)) %>%  
-  ungroup() %>% 
-  mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
-  select(-c("Reach", "Date")) %>% 
-  pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
-  column_to_rownames(var = "MnDay") %>% 
-  as.matrix()
-
-#fda ####
-#1)get log abundance and put into named number ####
-Carcar_Isleta <- datfish %>% 
-  filter(Species_Codes == "PLAGRA" & Reach == "San Acacia") %>% 
-  select(Year, LogMean) %>% 
-  pull(LogMean, Year) #makes a named number using Year to name row
-
-ny <- length(Carcar_Isleta) #length of y data
-
+prepare_data <- function(reach, species_code){
+  
+  ExtIsleta_Irrig <- dat_drying %>%  
+    select(!X) %>%  
+    filter(Date >= "2010-01-01" & Reach == reach) %>%  
+    mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
+    arrange(Date, RMTenthDry) %>%  
+    group_by(year(Date), Reach) %>%  
+    mutate(MD = cumsum(DryRM2)/10) %>%  
+    ungroup() %>%  
+    filter(between(month(Date), 4, 10)) %>%  
+    group_by(Reach, Date) %>%  
+    summarise(Daily_MaxMileDays = max(MD)) %>%  
+    ungroup() %>% 
+    mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+    select(-c("Reach", "Date")) %>% 
+    pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
+    column_to_rownames(var = "MnDay") %>% 
+    as.matrix()
+  
+  #fda ####
+  #1)get log abundance and put into named number ####
+  Carcar_Isleta <- datfish %>% 
+    filter(Species_Codes == species_code & Reach == reach) %>% 
+    select(Year, LogMean) %>% 
+    pull(LogMean, Year) #makes a named number using Year to name row
+  
+  ny <- length(Carcar_Isleta) #length of y data
+  
 #2) create functional covariate for predictor data ####
- 
+
   #for irrigation season
 ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,7)) #don't add penalties or lambda to keep data information
-plot(ExtIsleta_basis)
+#plot(ExtIsleta_basis)
 
 ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
-plot(ExtIsleta_smooth_fd)
+#plot(ExtIsleta_smooth_fd)
 
  #for the entire year
 # ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,21)) #don't add penalties or lambda to keep data information
@@ -132,51 +134,95 @@ for (ilam in 1:nlam) {
   SSE.CV[ilam]   = fRegi$SSE.CV
 }
 
-par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
-plot(loglam, SSE.CV, type="b", lwd=2,
-     xlab="log smoothing parameter lambda",
-     ylab="Cross-validation score", cex.lab=2,cex.axis=2)
+# par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
+# plot(loglam, SSE.CV, type="b", lwd=2,
+#      xlab="log smoothing parameter lambda",
+#      ylab="Cross-validation score", cex.lab=2,cex.axis=2)
 
-#6) Run regression with lambda ####
 #find the index of the minimum SSE.CV
 min.index <- which.min(SSE.CV)
 #corresponding loglam vlaue
 best.loglam <- loglam[min.index]
 
-lambda = 10^best.loglam
-betafdPar  = fdPar(betabasis, 2, lambda)
 
-betalist2 <- betalist1
-betalist2[[2]] <- betafdPar  
+return(list(Carcar_Isleta = Carcar_Isleta, ExtIsleta_list = ExtIsleta_list, best_loglam = best.loglam, betabasis=betabasis,
+            betalist1 = betalist1, ExtIsleta_smooth = ExtIsleta_smooth, ny = ny))
+}
 
-AnnCarcarExtIsleta <- fRegress(Carcar_Isleta, ExtIsleta_list, betalist2)
 
-#significance
-#7) Get parameters and assess significance of drying
+#6) Run regression with lambda ####
+run_analysis <- function(data){
+  #Extract elements
+  
+  Carcar_Isleta <- data$Carcar_Isleta
+  ExtIsleta_list <- data$ExtIsleta_list
+  lambda <- data$best_loglam
+  betabasis <- data$betabasis
+  betalist1 <- data$betalist1
+  ExtIsleta_smooth <- data$ExtIsleta_smooth
+  ny <- data$ny
+  
+  
+  lambda = 10^lambda
+  
+  betafdPar  = fdPar(betabasis, 2, lambda)
+  
+  betalist2 <- betalist1
+  betalist2[[2]] <- betafdPar  
+  
+  AnnCarcarExtIsleta <- fRegress(Carcar_Isleta, ExtIsleta_list, betalist2)
+  
+  #significance
+  #7) Get parameters and assess significance of drying
+  
+  betaest_Carcar_ExtIsleta <- AnnCarcarExtIsleta$betaestlist #getting beta(t)
+  chat2_Carcar_ExtIsleta <- AnnCarcarExtIsleta$yhatfdobj #getting fitted value yhat
+  print(AnnCarcarExtIsleta$df) #getting effective degrees of freedom
+  
+  # F test for the overall effect of x_i(t) #####
+  # H0: y = alpha + \epsilon
+  # H1: y = alpha + \int [beta(t)x(t)]dt + epsilon
+  
+  (SSE0 <-  sum((Carcar_Isleta - mean(Carcar_Isleta))^2)) # sum squared residuals for the null model y = alpha + \epsilon
+  (SSE2 <- sum((Carcar_Isleta - chat2_Carcar_ExtIsleta)^2)) #sum squared residuals
+  
+  nbasis <- ExtIsleta_smooth$fd$basis$nbasis
+  (Fratio = ((SSE0-SSE2)/(nbasis-1)/(SSE2/(ny-nbasis))))
+  (Fratio2  <-  ((SSE0-SSE2)/(AnnCarcarExtIsleta$df-1))/(SSE2/(ny-AnnCarcarExtIsleta$df)))
+  
+  # 95% quantile 
+  (qFratio <- qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
+  
+  TF_Fratio <- Fratio2 > qFratio #if false no significant, if true significant
+  
+  # calculate the p-value
+  pval <- 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
+  # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
+  
+  return(list(TF_Fratio = TF_Fratio, pval = pval))
+}
 
-betaest_Carcar_ExtIsleta <- AnnCarcarExtIsleta$betaestlist #getting beta(t)
-chat2_Carcar_ExtIsleta <- AnnCarcarExtIsleta$yhatfdobj #getting fitted value yhat
-print(AnnCarcarExtIsleta$df) #getting effective degrees of freedom
+reaches <- c("San Acacia", "Isleta")
+species_codes <- c("CARCAR", "CYPCAR", "GAMAFF")
 
-# F test for the overall effect of x_i(t) #####
-# H0: y = alpha + \epsilon
-# H1: y = alpha + \int [beta(t)x(t)]dt + epsilon
+results_table <- data.frame(Reach = character(), Species_Code = character(), TF_Fratio = numeric(), P_Value = numeric())
 
-(SSE0 <-  sum((Carcar_Isleta - mean(Carcar_Isleta))^2)) # sum squared residuals for the null model y = alpha + \epsilon
-(SSE2 <- sum((Carcar_Isleta - chat2_Carcar_ExtIsleta)^2)) #sum squared residuals
+# Iterate over reaches and species
+for (reach in reaches) {
+  for (species_code in species_codes) {
+    # Prepare data
+    data <- prepare_data(reach, species_code)
+    
+    # Run analysis
+    analysis_results <- run_analysis(data)
+    
+    # Store results in table
+    results_table <- rbind(results_table, c(reach, species_code, analysis_results$TF_Fratio, analysis_results$pval))
+  }
+}
 
-nbasis <- ExtIsleta_smooth$fd$basis$nbasis
-(Fratio = ((SSE0-SSE2)/(nbasis-1)/(SSE2/(ny-nbasis))))
-(Fratio2  <-  ((SSE0-SSE2)/(AnnCarcarExtIsleta$df-1))/(SSE2/(ny-AnnCarcarExtIsleta$df)))
-
-# 95% quantile 
-(qFratio <- qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
-
-TF_Fratio <- Fratio2 > qFratio #if false no significant, if true significant
-
-# calculate the p-value
-pval <- 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
-# p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
+# Adjust the results_table to include the step_size column
+colnames(results_table) <- c("Reach", "Species_Code", "TF_Fratio", "P_Value")
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 # F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
