@@ -57,7 +57,8 @@ ExtIsleta_Irrig <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
-prepare_data <- function(reach, species_code){
+#function to prepare data #####
+prepare_data <- function(reach, species_code, step_size){
   
   ExtIsleta_Irrig <- dat_drying %>%  
     select(!X) %>%  
@@ -89,7 +90,7 @@ prepare_data <- function(reach, species_code){
 #2) create functional covariate for predictor data ####
 
   #for irrigation season
-ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,7)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,step_size)) #don't add penalties or lambda to keep data information
 #plot(ExtIsleta_basis)
 
 ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
@@ -149,8 +150,8 @@ return(list(Carcar_Isleta = Carcar_Isleta, ExtIsleta_list = ExtIsleta_list, best
             betalist1 = betalist1, ExtIsleta_smooth = ExtIsleta_smooth, ny = ny))
 }
 
-
-#6) Run regression with lambda ####
+#function to run regresssion ####
+#6) Run regression with lambda 
 run_analysis <- function(data){
   #Extract elements
   
@@ -203,26 +204,30 @@ run_analysis <- function(data){
 }
 
 reaches <- c("San Acacia", "Isleta")
-species_codes <- c("CARCAR", "CYPCAR", "GAMAFF")
+species_codes <- c("CARCAR", "CYPCAR", "GAMAFF", "PLAGRA")
 
-results_table <- data.frame(Reach = character(), Species_Code = character(), TF_Fratio = numeric(), P_Value = numeric())
+results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), TF_Fratio = numeric(), P_Value = numeric())
 
-# Iterate over reaches and species
+step_size <- c(2, 7, 14)  # Example step sizes
+
 for (reach in reaches) {
   for (species_code in species_codes) {
-    # Prepare data
-    data <- prepare_data(reach, species_code)
-    
-    # Run analysis
-    analysis_results <- run_analysis(data)
-    
-    # Store results in table
-    results_table <- rbind(results_table, c(reach, species_code, analysis_results$TF_Fratio, analysis_results$pval))
+    for (step_size in step_size) {
+      # Prepare data with step_size passed as an argument
+      data <- prepare_data(reach, species_code, step_size)
+      
+      # Run analysis
+      analysis_results <- run_analysis(data)
+      
+      # Store results in the table
+      results_table <- rbind(results_table, c(reach, species_code, step_size, 
+                                              analysis_results$TF_Fratio, 
+                                              analysis_results$pval))
+    }
   }
 }
-
 # Adjust the results_table to include the step_size column
-colnames(results_table) <- c("Reach", "Species_Code", "TF_Fratio", "P_Value")
+colnames(results_table) <- c("Reach", "Species_Code", "step_size", "TF_Fratio", "P_Value")
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 # F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
