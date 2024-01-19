@@ -13,45 +13,44 @@ library(fda) #seems like it messes up some tidy functions like "complete" and ma
 library(reshape2)
 library(wesanderson) #colors
 
-#data ####
-dat2 <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv")
-dat_drying <- dat2 %>% 
+#Wrangle fish ####
+datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>% 
+  group_by(Species_Codes, Year, Reach) %>% 
+  summarise(MnCPUE = mean(CPUE_m, na.rm = T)) %>% 
+  ungroup() %>% 
+  mutate(LogMean = log10(MnCPUE+0.001))
+
+Carcar_Isleta <- datfish %>% 
+  filter(Species_Codes == "CARCAR" & Reach == "Isleta") %>% 
+  select(Year, LogMean) %>% 
+  pull(LogMean, Year) #makes a named number using Year to name row
+
+#wrangle drying ####
+dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv") %>% 
   mutate(Reach = case_when(RMTenthDry < 116 ~ "San Acacia",
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
-datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv")
 
-#wrangle ####
-#daily change in river miles dry (extent - # river miles)
-ExtentChngDry_Irrig <- dat_drying %>%
+#Extent dry - Isleta
+#need it to be a matrix with years named as columns and days as rows 
+ExtIsleta_Yr <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0) %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(ExtentDry = replace_na(ExtentDry, 0),
-         ChngExtentDry = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
   ungroup() %>% 
-  filter(between(month(Date), 4, 10))
+  select(Year, ExtentDry, MnDay) %>% 
+  filter(MnDay != "Feb29") %>% 
+  pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
 
-MileDays_Irrig <- dat_drying %>% 
-  dplyr::select(!X) %>% 
-  filter(Date >= "2010-01-01") %>% 
-  mutate(DryRM2 = case_when(DryRM == 0 ~ 1,
-                            TRUE ~ 0)) %>% 
-  arrange(Date, RMTenthDry) %>% 
-  group_by(year(Date), Reach) %>% 
-  mutate(MD = cumsum(DryRM2)/10) %>% 
-  ungroup() %>% 
-  filter(between(month(Date), 4, 10)) %>% 
-  group_by(Reach, Date) %>% 
-  summarise(Daily_MaxMileDays = max(MD)) %>% 
-  ungroup() 
+#setting up fda ####
+ny <- length(Carcar_Isleta) #length of y data
 
-DryingDat <- ExtentChngDry_Irrig %>% 
-  full_join(MileDays_Irrig, by = c("Date", "Reach")) %>% 
-  mutate(DOY = yday(Date)) %>% 
-  dplyr::select(Date, DOY, Reach, ExtentDry, ChngExtentDry, Daily_MaxMileDays)
+
 
 #simple visualizing yearly curves ####
 
@@ -159,11 +158,11 @@ ggplot(data=obs_fd_df) +
 #obtain the annual abundance of fish at Isleta - # years = 12
 abund_CARCAR <- datfish %>% 
   filter(Species_Codes == "CARCAR" & Reach == "Isleta") %>% 
-  select(Year, CPUE_m) %>% 
+  select(Year, MnCPUE) %>% 
   group_by(Year) %>% 
   summarise(MnCPUE = mean(CPUE_m, na.rm = T))
 
-CARCAR <- abund_CARCAR %>% pull(MnCPUE, Year)
+CARCAR <- Carcar_Isleta %>% pull(MnCPUE, Year) #make a named numeric
 
 
 #define the bspline basis functions

@@ -30,7 +30,7 @@ dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDry
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Yr <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -44,16 +44,34 @@ ExtIsleta_Yr <- dat_drying %>%
 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
   mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
   ungroup() %>% 
-  filter(between(month(Date),6,10)) %>% 
+  filter(between(month(Date),4,10)) %>% 
   select(Year, ExtentDry, MnDay) %>% 
   filter(MnDay != "Feb29") %>% 
   pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
+
+MD_Irrig <- dat_drying %>%  
+  select(!X) %>%  
+  filter(Date >= "2010-01-01" & Reach == "San Acacia") %>%  
+  mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
+  arrange(Date, RMTenthDry) %>%  
+  group_by(year(Date), Reach) %>%  
+  mutate(MD = cumsum(DryRM2)/10) %>%  
+  ungroup() %>%  
+  filter(between(month(Date), 4, 10)) %>%  
+  group_by(Reach, Date) %>%  
+  summarise(Daily_MaxMileDays = max(MD)) %>%  
+  ungroup() %>% 
+  mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  select(-c("Reach", "Date")) %>% 
+  pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
@@ -69,16 +87,16 @@ ny <- length(Carcar_Isleta) #length of y data
 #2) create functional covariate for predictor data ####
  
   #for irrigation season
-ExtIsleta_basis <- create.bspline.basis(c(1,153), norder = 4, breaks = seq(1,153,3)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,7)) #don't add penalties or lambda to keep data information
 plot(ExtIsleta_basis)
 
-ExtIsleta_smooth <- smooth.basis(seq(1,153,1), ExtIsleta_Irrig, ExtIsleta_basis)
+ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
 plot(ExtIsleta_smooth_fd)
 
  #for the entire year
-ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,5)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,21)) #don't add penalties or lambda to keep data information
 plot(ExtIsleta_basis)
 
 ExtIsleta_smooth <- smooth.basis(day.5, ExtIsleta_Yr, ExtIsleta_basis)
@@ -87,13 +105,13 @@ ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 plot(ExtIsleta_smooth_fd)
 
 
-#3) create list of functional covarites
+#3) create list of functional covarites ####
 ExtIsleta_list <- vector("list", 2)
 ExtIsleta_list[[1]] <- rep(1,ny)
 ExtIsleta_list[[2]] <- ExtIsleta_smooth_fd
 
 #4) create basis list
-conbasis <-  create.constant.basis(c(0,365))
+conbasis <-  create.constant.basis(c(1,214)) #THIS HAS TO CHANGE WITH THE DATE RANGE ##
 betabasis <- ExtIsleta_basis #used same basis as before
 
 betalist1 <- vector("list", 2)
@@ -102,44 +120,25 @@ betalist1[[2]] <- betabasis
 
 #5) Choose Smoothing Parameters using cross-validation ####
 # 
-# loglam = seq(1,15,0.5)
-# nlam   = length(loglam)
-# SSE.CV = rep(NA,nlam)
-# for (ilam in 1:nlam) {
-#   print(paste("log lambda =", loglam[ilam]))
-#   lambda     = 10^(loglam[ilam])
-#   betalisti  = betalist1
-#   betalisti[[2]] = fdPar(betabasis, 2, lambda)
-#   fRegi          = fRegress.CV(Carcar_Isleta, ExtIsleta_list, betalisti)
-#   SSE.CV[ilam]   = fRegi$SSE.CV
-# }
-# 
-# par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
-# plot(loglam, SSE.CV, type="b", lwd=2,
-#      xlab="log smoothing parameter lambda",
-#      ylab="Cross-validation score", cex.lab=2,cex.axis=2)
-
-loglam        = seq(1,15,0.5)
-nlam          = length(loglam)
-dfsave        = rep(NA,nlam)
-names(dfsave) = loglam
-gcvsave       = dfsave
+loglam = seq(1,15,0.5)
+nlam   = length(loglam)
+SSE.CV = rep(NA,nlam)
 for (ilam in 1:nlam) {
-  cat(paste('log10 lambda =',loglam[ilam],'\n'))
-  lambda        = 10^loglam[ilam]
-  fdParobj      = fdPar(betabasis, 2, lambda)
-  smoothlist    = smooth.basis(seq(1,153,1), ExtIsleta_Irrig,
-                               fdParobj)
-  dfsave[ilam]  = smoothlist$df
-  gcvsave[ilam] = sum(smoothlist$gcv)
+  print(paste("log lambda =", loglam[ilam]))
+  lambda     = 10^(loglam[ilam])
+  betalisti  = betalist1
+  betalisti[[2]] = fdPar(betabasis, 2, lambda)
+  fRegi          = fRegress.CV(Carcar_Isleta, ExtIsleta_list, betalisti)
+  SSE.CV[ilam]   = fRegi$SSE.CV
 }
 
-plot(loglam, gcvsave, type='b', lwd=2, ylab='GCV Criterion',
-     xlab=expression(log[10](lambda)) )
-
+par(mfrow=c(1,1),mar = c(8, 8, 4, 2))
+plot(loglam, SSE.CV, type="b", lwd=2,
+     xlab="log smoothing parameter lambda",
+     ylab="Cross-validation score", cex.lab=2,cex.axis=2)
 
 #6) Run regression with lambda ####
-lambda = 10^4
+lambda = 10^11
 betafdPar  = fdPar(betabasis, 2, lambda)
 
 betalist2 <- betalist1
@@ -147,7 +146,7 @@ betalist2[[2]] <- betafdPar
 
 AnnCarcarExtIsleta <- fRegress(Carcar_Isleta, ExtIsleta_list, betalist2)
 
-#significance ####
+#significance
 #7) Get parameters and assess significance of drying
 
 betaest_Carcar_ExtIsleta <- AnnCarcarExtIsleta$betaestlist #getting beta(t)
