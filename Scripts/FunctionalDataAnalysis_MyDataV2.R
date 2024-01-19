@@ -96,13 +96,13 @@ ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 plot(ExtIsleta_smooth_fd)
 
  #for the entire year
-ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,21)) #don't add penalties or lambda to keep data information
-plot(ExtIsleta_basis)
-
-ExtIsleta_smooth <- smooth.basis(day.5, ExtIsleta_Yr, ExtIsleta_basis)
-ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
-
-plot(ExtIsleta_smooth_fd)
+# ExtIsleta_basis <- create.bspline.basis(c(0365), norder = 4, breaks = seq(0,365,21)) #don't add penalties or lambda to keep data information
+# plot(ExtIsleta_basis)
+# 
+# ExtIsleta_smooth <- smooth.basis(day.5, ExtIsleta_Yr, ExtIsleta_basis)
+# ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
+# 
+# plot(ExtIsleta_smooth_fd)
 
 
 #3) create list of functional covarites ####
@@ -138,7 +138,12 @@ plot(loglam, SSE.CV, type="b", lwd=2,
      ylab="Cross-validation score", cex.lab=2,cex.axis=2)
 
 #6) Run regression with lambda ####
-lambda = 10^11
+#find the index of the minimum SSE.CV
+min.index <- which.min(SSE.CV)
+#corresponding loglam vlaue
+best.loglam <- loglam[min.index]
+
+lambda = 10^best.loglam
 betafdPar  = fdPar(betabasis, 2, lambda)
 
 betalist2 <- betalist1
@@ -167,10 +172,10 @@ nbasis <- ExtIsleta_smooth$fd$basis$nbasis
 # 95% quantile 
 (qFratio <- qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
 
-Fratio2 > qFratio #if false no significant, if true significant
+TF_Fratio <- Fratio2 > qFratio #if false no significant, if true significant
 
 # calculate the p-value
-1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
+pval <- 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
 # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
