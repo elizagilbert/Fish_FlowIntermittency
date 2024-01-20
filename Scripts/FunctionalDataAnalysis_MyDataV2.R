@@ -26,25 +26,49 @@ dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDry
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
 
-#Extent dry - Isleta
-#need it to be a matrix with years named as columns and days as rows 
-ExtIsleta_Yr <- dat_drying %>%
+#visualzing data #####
+
+   #extent dry
+dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "Isleta") %>% 
+  filter(DryRM == 0) %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), DOY = yday(Date)) %>% 
   ungroup() %>% 
-  select(Year, ExtentDry, MnDay) %>% 
-  filter(MnDay != "Feb29") %>% 
-  pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
-  column_to_rownames(var = "MnDay") %>% 
-  as.matrix()
+  filter(between(month(Date),4,10)) %>% 
+  ggplot(aes(x = DOY, y = ExtentDry, color = as.factor(Year)))+
+  geom_line(size = 1)+
+  facet_grid(vars(Reach))+
+  theme_classic()
 
+
+    #mile days
+dat_drying %>%  
+  select(!X) %>%  
+  filter(Date >= "2010-01-01") %>%  
+  mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
+  arrange(Date, RMTenthDry) %>%  
+  group_by(year(Date), Reach) %>%  
+  mutate(MD = cumsum(DryRM2)/10) %>%  
+  ungroup() %>%  
+  filter(between(month(Date), 4, 10)) %>%  
+  group_by(Reach, Date) %>%  
+  summarise(Daily_MaxMileDays = max(MD)) %>%  
+  ungroup() %>% 
+  filter(between(month(Date),4,10)) %>% 
+  mutate(Year = year(Date), DOY = yday(Date)) %>% 
+  ggplot(aes(x = DOY, y = Daily_MaxMileDays, color = as.factor(Year)))+
+  geom_line(size = 1)+
+  facet_grid(vars(Reach))+
+  theme_classic()
+
+#Extent dry - Isleta
+#need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "Isleta") %>% 
+  filter(DryRM == 0 & Reach == reach) %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -57,10 +81,28 @@ ExtIsleta_Irrig <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
+MileDays_Irrig <- dat_drying %>%  
+  select(!X) %>%  
+  filter(Date >= "2010-01-01" & Reach == reach) %>%  
+  mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
+  arrange(Date, RMTenthDry) %>%  
+  group_by(year(Date), Reach) %>%  
+  mutate(MD = cumsum(DryRM2)/10) %>%  
+  ungroup() %>%  
+  filter(between(month(Date), 4, 10)) %>%  
+  group_by(Reach, Date) %>%  
+  summarise(Daily_MaxMileDays = max(MD)) %>%  
+  ungroup() %>% 
+  mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  select(-c("Reach", "Date")) %>% 
+  pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
+
 #function to prepare data #####
 prepare_data <- function(reach, species_code, step_size){
   
-  ExtIsleta_Irrig <- dat_drying %>%  
+  DryingMetric <- dat_drying %>%                                  #change metric from above code after equals sign
     select(!X) %>%  
     filter(Date >= "2010-01-01" & Reach == reach) %>%  
     mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
@@ -93,7 +135,7 @@ prepare_data <- function(reach, species_code, step_size){
 ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,step_size)) #don't add penalties or lambda to keep data information
 #plot(ExtIsleta_basis)
 
-ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
+ExtIsleta_smooth <- smooth.basis(seq(1,214,1), DryingMetric, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
 #plot(ExtIsleta_smooth_fd)
@@ -204,30 +246,37 @@ run_analysis <- function(data){
 }
 
 reaches <- c("San Acacia", "Isleta")
-species_codes <- c("CARCAR", "CYPCAR", "GAMAFF", "PLAGRA")
+species_codes <- c("CARCAR", "CYPCAR", "CYPLUT", "GAMAFF", "HYBAMA", "ICTPUN", "PIMPRO", "PLAGRA")
+step_size <- c(2, 4, 6, 8, 10, 12, 14)  # Example step sizes
 
 results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), TF_Fratio = numeric(), P_Value = numeric())
 
-step_size <- c(2, 7, 14)  # Example step sizes
-
 for (reach in reaches) {
   for (species_code in species_codes) {
-    for (step_size in step_size) {
-      # Prepare data with step_size passed as an argument
-      data <- prepare_data(reach, species_code, step_size)
-      
-      # Run analysis
-      analysis_results <- run_analysis(data)
-      
-      # Store results in the table
-      results_table <- rbind(results_table, c(reach, species_code, step_size, 
-                                              analysis_results$TF_Fratio, 
-                                              analysis_results$pval))
+    for (sz in step_size) {
+      tryCatch({
+        # Prepare data with step_size passed as an argument
+        data <- prepare_data(reach, species_code, sz)
+        
+        # Run analysis
+        analysis_results <- run_analysis(data)
+        
+        # Store results in the table
+        results_table <- rbind(results_table, c(reach, species_code, sz,
+                                                analysis_results$TF_Fratio, 
+                                                analysis_results$pval))
+      }, error = function(e) {
+        cat("Error in processing:", reach, species_code, sz, "\n")
+        print(e)
+      })
     }
   }
 }
+
 # Adjust the results_table to include the step_size column
-colnames(results_table) <- c("Reach", "Species_Code", "step_size", "TF_Fratio", "P_Value")
+colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value") #change Reach name 
+
+write.table(results_table, "FDA_tables/MileDays.csv")
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 # F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
