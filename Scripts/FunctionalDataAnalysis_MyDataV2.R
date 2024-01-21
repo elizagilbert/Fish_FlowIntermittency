@@ -72,7 +72,8 @@ ExtIsleta_Irrig <- dat_drying %>%
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
+         ExtentDry = log(ExtentDry+0.001)) %>% 
   ungroup() %>% 
   filter(between(month(Date),4,10)) %>% 
   select(Year, ExtentDry, MnDay) %>% 
@@ -91,7 +92,7 @@ MileDays_Irrig <- dat_drying %>%
   ungroup() %>%  
   filter(between(month(Date), 4, 10)) %>%  
   group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = max(MD)) %>%  
+  summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
   ungroup() %>% 
   mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
   select(-c("Reach", "Date")) %>% 
@@ -102,7 +103,8 @@ MileDays_Irrig <- dat_drying %>%
 #function to prepare data #####
 prepare_data <- function(reach, species_code, step_size){
   
-  DryingMetric <- dat_drying %>%                                  #change metric from above code after equals sign
+  #change metric from Extent to Mile Days
+  DryingMetric <- dat_drying %>%  
     select(!X) %>%  
     filter(Date >= "2010-01-01" & Reach == reach) %>%  
     mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
@@ -112,7 +114,7 @@ prepare_data <- function(reach, species_code, step_size){
     ungroup() %>%  
     filter(between(month(Date), 4, 10)) %>%  
     group_by(Reach, Date) %>%  
-    summarise(Daily_MaxMileDays = max(MD)) %>%  
+    summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
     ungroup() %>% 
     mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
     select(-c("Reach", "Date")) %>% 
@@ -246,11 +248,12 @@ run_analysis <- function(data){
 }
 
 reaches <- c("San Acacia", "Isleta")
-species_codes <- c("CARCAR", "CYPCAR", "CYPLUT", "GAMAFF", "HYBAMA", "ICTPUN", "PIMPRO", "PLAGRA")
-step_size <- c(2, 4, 6, 8, 10, 12, 14)  # Example step sizes
+species_codes <- c("CARCAR", "CYPCAR", "CYPLUT", "GAMAFF", "ICTPUN", "PIMPRO", "PLAGRA", "HYBAMA")
+step_size <- c(6, 8, 10, 12, 14)  # Example step sizes
 
 results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), TF_Fratio = numeric(), P_Value = numeric())
 
+start.time <- Sys.time()
 for (reach in reaches) {
   for (species_code in species_codes) {
     for (sz in step_size) {
@@ -276,7 +279,10 @@ for (reach in reaches) {
 # Adjust the results_table to include the step_size column
 colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value") #change Reach name 
 
-write.table(results_table, "FDA_tables/MileDays.csv")
+write.table(results_table, "FDA_tables/LogMD.csv")
+
+end.time <- Sys.time()
+time8 <- round(end.time - start.time,2) #14.4 min
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 # F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
