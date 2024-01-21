@@ -68,7 +68,7 @@ dat_drying %>%
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "Isleta") %>% 
+  filter(DryRM == 0 & Reach == "San Acacia") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -104,7 +104,7 @@ MileDays_Irrig <- dat_drying %>%
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "GAMAFF" & Reach == "Isleta") %>% 
+    filter(Species_Codes == "CARCAR" & Reach == "San Acacia") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -186,6 +186,8 @@ min.index <- which.min(SSE.CV)
   
   (SSE0 <-  sum((Carcar_Isleta - mean(Carcar_Isleta))^2)) # sum squared residuals for the null model y = alpha + \epsilon
   (SSE2 <- sum((Carcar_Isleta - chat2_Carcar_ExtIsleta)^2)) #sum squared residuals
+
+  
   
   nbasis <- ExtIsleta_smooth$fd$basis$nbasis
   (Fratio = ((SSE0-SSE2)/(nbasis-1)/(SSE2/(ny-nbasis))))
@@ -198,7 +200,9 @@ min.index <- which.min(SSE.CV)
   
   # calculate the p-value
   (pval <- 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
-  # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
+  
+  # r-squared (1- sum residuals squared /total sum squares) 
+  (r2 <- 1-(SSE2/SSE0))
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
@@ -255,6 +259,8 @@ finaldat <- as.data.frame(cbind(time, coefs, coefs_sd)) %>%
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_Extent.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PLAGRA_Extent.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CYPLUT_Extent.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CARCAR_Extent.csv", row.names = F)
+
 
 finaldat %>% 
   ggplot(aes(x = Time, y = Coef))+
@@ -263,5 +269,5 @@ finaldat %>%
   geom_line(aes(x=Time, y = LowerCI), color = "red", size = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", size = 1)+
   ylab("Coefficient")+ xlab("Day of Year")+
-  ylim(-0.03, 0.02)+
+  ylim(-0.002, 0.006)+
   theme_classic()

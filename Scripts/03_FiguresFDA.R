@@ -18,6 +18,8 @@ plagra_is <- read.csv("FDA_Data/Coefs_Isleta_PLAGRA_Extent.csv")%>%
 
 cyplut_san_a <- read.csv("FDA_Data/Coefs_SanAcacia_CYPLUT_Extent.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
+carcar_san_a <- read.csv("FDA_Data/Coefs_SanAcacia_CARCAR_Extent.csv")%>% 
+  mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 #plotting code
 
@@ -46,7 +48,7 @@ pl_gam_is <-gamaff_is %>%
   scale_y_continuous(breaks = seq(-0.04, 0.08, 0.02))+
   theme_classic()+
   ggtitle("Mosquitofish (Upper Reach)")+
-  theme(plot.title = element_text(size = 10))+
+  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -80,7 +82,7 @@ pl_pla_is <-plagra_is %>%
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
-  #cyplut - san acacai
+  #cyplut - san acacia
 pl_cyp_san <-cyplut_san_a %>% 
   ggplot(aes(x = Time, y = Coef))+
   geom_line(size = 1)+
@@ -94,7 +96,20 @@ pl_cyp_san <-cyplut_san_a %>%
   theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
+ #carcar - san acacia
+pl_car_san <- carcar_san_a %>% 
+  ggplot(aes(x = Time, y = Coef))+
+  geom_line(size = 1)+
+  geom_line(aes(x=Time, y = UpperCI), color = "grey", size = 1)+
+  geom_line(aes(x=Time, y = LowerCI), color = "grey", size = 1)+
+  geom_hline(yintercept = 0, linetype = "dotted", size = 1)+
+  ylab("")+ xlab("")+
+  ylim(-0.002, 0.006)+
+  theme_classic()+
+  ggtitle("Common Carp (Lower Reach)")+
+  theme(plot.title = element_text(size = 10))+
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 tiff("Figures/FDA_Extent.jpg", units= "in", width = 8, height = 6, res = 600)
-plot_grid(pl_pim_is, pl_pla_is, pl_gam_is, pl_cyp_is, pl_cyp_san)
+plot_grid(pl_pim_is, pl_pla_is, pl_gam_is, pl_cyp_is, pl_cyp_san, pl_car_san)
 dev.off()

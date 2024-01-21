@@ -199,14 +199,14 @@ run_analysis <- function(data){
   
   Carcar_Isleta <- data$Carcar_Isleta
   ExtIsleta_list <- data$ExtIsleta_list
-  lambda <- data$best_loglam
+  lambda1 <- data$best_loglam
   betabasis <- data$betabasis
   betalist1 <- data$betalist1
   ExtIsleta_smooth <- data$ExtIsleta_smooth
   ny <- data$ny
   
   
-  lambda = 10^lambda
+  lambda = 10^lambda1
   
   betafdPar  = fdPar(betabasis, 2, lambda)
   
@@ -237,19 +237,26 @@ run_analysis <- function(data){
   (qFratio <- qf(0.95,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df))
   
   TF_Fratio <- Fratio2 > qFratio #if false no significant, if true significant
+  Dif_Fratio <- round((Fratio2 - qFratio),3)
   
   # calculate the p-value
-  pval <- 1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df)
+  pval <- round(1-pf(Fratio2,AnnCarcarExtIsleta$df-1,ny-AnnCarcarExtIsleta$df),3)
   # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
   
-  return(list(TF_Fratio = TF_Fratio, pval = pval))
+  # r-squared (1- sum residuals squared /total sum squares) 
+  r2 <- round(1-(SSE2/SSE0),3)
+  
+  
+  return(list(TF_Fratio = TF_Fratio, pval = pval, r2 = r2, Dif_Fratio=Dif_Fratio, best_loglam = data$best_loglam))
 }
 
 reaches <- c("San Acacia", "Isleta")
-species_codes <- c("CARCAR", "CYPCAR", "CYPLUT", "GAMAFF", "ICTPUN", "PIMPRO", "PLAGRA", "HYBAMA")
-step_size <- c(6, 8, 10, 12, 14)  # Example step sizes
+species_codes <- c( "CARCAR", "CYPCAR" ,"CYPLUT" ,"GAMAFF" ,"HYBAMA", "ICTPUN", "PIMPRO", "PLAGRA")
+step_size <- c(4)  # Example step sizes
 
-results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), TF_Fratio = numeric(), P_Value = numeric())
+results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), 
+                            TF_Fratio = numeric(), P_Value = numeric(), r2 = numeric(), best_loglam = numeric(),
+                            lambda1 = numeric())
 
 start.time <- Sys.time()
 for (reach in reaches) {
@@ -265,7 +272,10 @@ for (reach in reaches) {
         # Store results in the table
         results_table <- rbind(results_table, c(reach, species_code, sz,
                                                 analysis_results$TF_Fratio, 
-                                                analysis_results$pval))
+                                                analysis_results$pval,
+                                                analysis_results$r2,
+                                                analysis_results$Dif_Fratio,
+                                                data$best_loglam))
       }, error = function(e) {
         cat("Error in processing:", reach, species_code, sz, "\n")
         print(e)
@@ -275,12 +285,14 @@ for (reach in reaches) {
 }
 
 # Adjust the results_table to include the step_size column
-colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value") #change Reach name 
+colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value", "R2", "Diff_Fratio", "lambda") #change Reach name 
 
-write.table(results_table, "FDA_Data/LogExtent.csv")
+write.csv(results_table, "FDA_Data/LogExtent.csv")
 
 end.time <- Sys.time()
 time8 <- round(end.time - start.time,2) #14.4 min
+library(beepr)
+beep(1)
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
 # F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
