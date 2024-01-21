@@ -18,7 +18,7 @@ datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>%
   group_by(Species_Codes, Year, Reach) %>% 
   summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*1000)) %>% 
   ungroup() %>% 
-  mutate(LogMean = log10(MnCPUE+0.001))
+  mutate(LogMean = log(MnCPUE+0.001))
 
 #wrangle drying ####
 dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv") %>% 
@@ -68,11 +68,12 @@ dat_drying %>%
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "Isleta") %>% 
+  filter(DryRM == 0 & Reach == "San Acacia") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
+         ExtentDry = log(ExtentDry+0.001)) %>% 
   ungroup() %>% 
   filter(between(month(Date),4,10)) %>% 
   select(Year, ExtentDry, MnDay) %>% 
@@ -91,7 +92,7 @@ MileDays_Irrig <- dat_drying %>%
   ungroup() %>%  
   filter(between(month(Date), 4, 10)) %>%  
   group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = max(MD)) %>%  
+  summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
   ungroup() %>% 
   mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
   select(-c("Reach", "Date")) %>% 
@@ -103,7 +104,7 @@ MileDays_Irrig <- dat_drying %>%
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "PIMPRO" & Reach == "Isleta") %>% 
+    filter(Species_Codes == "CYPLUT" & Reach == "San Acacia") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -115,7 +116,7 @@ MileDays_Irrig <- dat_drying %>%
 ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,10)) #don't add penalties or lambda to keep data information
 #plot(ExtIsleta_basis)
 
-ExtIsleta_smooth <- smooth.basis(seq(1,214,1), MileDays_Irrig, ExtIsleta_basis)
+ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
 plot(ExtIsleta_smooth_fd)
@@ -233,7 +234,7 @@ betafd         = betafdPar$fd
 betastderrList = stderrList$betastderrlist
 betastderrfd   = betastderrList[[2]]
 
-plot(betafd, xlab="Day", ylab="Coeff (Isleta_PIMPRO_MileDays)", ylim = c(-0.0001, 0.0001))
+plot(betafd, xlab="Day", ylab="Coeff (SanAcacia_CYPLUT_Extent)", ylim = c(-0.005, 0.005))
  abline(h = 0, lty = 2)
  lines(betafd+2*betastderrfd, lty=2, lwd=2, col = "red")
  lines(betafd-2*betastderrfd, lty=2, lwd=2, col = "red")

@@ -18,7 +18,7 @@ datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>%
   group_by(Species_Codes, Year, Reach) %>% 
   summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*1000)) %>% 
   ungroup() %>% 
-  mutate(LogMean = log10(MnCPUE+0.001))
+  mutate(LogMean = log(MnCPUE+0.001))
 
 #wrangle drying ####
 dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv") %>% 
@@ -104,21 +104,19 @@ MileDays_Irrig <- dat_drying %>%
 prepare_data <- function(reach, species_code, step_size){
   
   #change metric from Extent to Mile Days
-  DryingMetric <- dat_drying %>%  
-    select(!X) %>%  
-    filter(Date >= "2010-01-01" & Reach == reach) %>%  
-    mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
-    arrange(Date, RMTenthDry) %>%  
-    group_by(year(Date), Reach) %>%  
-    mutate(MD = cumsum(DryRM2)/10) %>%  
-    ungroup() %>%  
-    filter(between(month(Date), 4, 10)) %>%  
-    group_by(Reach, Date) %>%  
-    summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
+  DryingMetric <- dat_drying %>%
+    dplyr::select(!X) %>% 
+    filter(DryRM == 0 & Reach == reach) %>% 
+    group_by(Reach, Date) %>% 
+    summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+    tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+    mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
+           ExtentDry = log(ExtentDry+0.001)) %>% 
     ungroup() %>% 
-    mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
-    select(-c("Reach", "Date")) %>% 
-    pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
+    filter(between(month(Date),4,10)) %>% 
+    select(Year, ExtentDry, MnDay) %>% 
+    filter(MnDay != "Feb29") %>% 
+    pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
     column_to_rownames(var = "MnDay") %>% 
     as.matrix()
   
@@ -279,7 +277,7 @@ for (reach in reaches) {
 # Adjust the results_table to include the step_size column
 colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value") #change Reach name 
 
-write.table(results_table, "FDA_tables/LogMD.csv")
+write.table(results_table, "FDA_tables/LogExtent.csv")
 
 end.time <- Sys.time()
 time8 <- round(end.time - start.time,2) #14.4 min
