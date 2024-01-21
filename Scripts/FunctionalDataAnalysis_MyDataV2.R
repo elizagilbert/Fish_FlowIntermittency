@@ -16,7 +16,7 @@ library(wesanderson) #colors
 #wrangle fish ####
 datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>% 
   group_by(Species_Codes, Year, Reach) %>% 
-  summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*1000)) %>% 
+  summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*10)) %>% 
   ungroup() %>% 
   mutate(LogMean = log(MnCPUE+0.001))
 
@@ -277,7 +277,7 @@ for (reach in reaches) {
 # Adjust the results_table to include the step_size column
 colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value") #change Reach name 
 
-write.table(results_table, "FDA_tables/LogExtent.csv")
+write.table(results_table, "FDA_Data/LogExtent.csv")
 
 end.time <- Sys.time()
 time8 <- round(end.time - start.time,2) #14.4 min

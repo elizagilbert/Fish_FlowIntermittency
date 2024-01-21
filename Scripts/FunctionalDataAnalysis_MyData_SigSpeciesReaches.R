@@ -16,7 +16,7 @@ library(wesanderson) #colors
 #wrangle fish ####
 datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>% 
   group_by(Species_Codes, Year, Reach) %>% 
-  summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*1000)) %>% 
+  summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*10)) %>% 
   ungroup() %>% 
   mutate(LogMean = log(MnCPUE+0.001))
 
@@ -38,7 +38,7 @@ dat_drying %>%
   mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), DOY = yday(Date)) %>% 
   ungroup() %>% 
   filter(between(month(Date),4,10)) %>% 
-  ggplot(aes(x = DOY, y = ExtentDry, color = as.factor(Year)))+
+  ggplot(aes(x = DOY, y = log(ExtentDry+0.001), color = as.factor(Year)))+
   geom_line(size = 1)+
   facet_grid(vars(Reach))+
   theme_classic()
@@ -68,7 +68,7 @@ dat_drying %>%
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -84,7 +84,7 @@ ExtIsleta_Irrig <- dat_drying %>%
 
 MileDays_Irrig <- dat_drying %>%  
   select(!X) %>%  
-  filter(Date >= "2010-01-01" & Reach == "Isleta") %>%  
+  filter(Date >= "2010-01-01" & Reach == "San Acacia") %>%  
   mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
   arrange(Date, RMTenthDry) %>%  
   group_by(year(Date), Reach) %>%  
@@ -104,7 +104,7 @@ MileDays_Irrig <- dat_drying %>%
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "CYPLUT" & Reach == "San Acacia") %>% 
+    filter(Species_Codes == "GAMAFF" & Reach == "Isleta") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -113,9 +113,10 @@ MileDays_Irrig <- dat_drying %>%
 #2) create functional covariate for predictor data ####
 
   #for irrigation season
-ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,10)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,4)) #don't add penalties or lambda to keep data information
 #plot(ExtIsleta_basis)
-
+plot(ExtIsleta_basis)
+  
 ExtIsleta_smooth <- smooth.basis(seq(1,214,1), ExtIsleta_Irrig, ExtIsleta_basis)
 ExtIsleta_smooth_fd <- ExtIsleta_smooth$fd
 
@@ -200,9 +201,9 @@ min.index <- which.min(SSE.CV)
   # p-value is 0.12 indicating that x_i(t) does not have a significant effect on y_i
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
-# F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
-# F.res$Fobs
-# F.res$qval
+F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
+F.res$Fobs
+F.res$qval
 
 #plotting ####
 #8) plot beta(t)
@@ -234,10 +235,33 @@ betafd         = betafdPar$fd
 betastderrList = stderrList$betastderrlist
 betastderrfd   = betastderrList[[2]]
 
-plot(betafd, xlab="Day", ylab="Coeff (SanAcacia_CYPLUT_Extent)", ylim = c(-0.005, 0.005))
+plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-.04, .08))
  abline(h = 0, lty = 2)
  lines(betafd+2*betastderrfd, lty=2, lwd=2, col = "red")
  lines(betafd-2*betastderrfd, lty=2, lwd=2, col = "red")
 
+#get data to plot final graphs ####
+coefs <- betafd$coefs  
+coefs_sd <- betastderrfd$coefs
+time <- c(90.5,seq(91,304, 4), 304.5)
 
+finaldat <- as.data.frame(cbind(time, coefs, coefs_sd)) %>% 
+  rename(Time = 1, Coef = 2, Coef_SD = 3) %>% 
+  mutate(UpperCI = Coef+2*Coef_SD, LowerCI = Coef-2*Coef_SD) %>% 
+  `rownames<-`( NULL )
 
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_CYPLUT_Extent.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_GAMAFF_Extent.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_Extent.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PLAGRA_Extent.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CYPLUT_Extent.csv", row.names = F)
+
+finaldat %>% 
+  ggplot(aes(x = Time, y = Coef))+
+  geom_line(size = 1)+
+  geom_line(aes(x=Time, y = UpperCI), color = "red", size = 1)+
+  geom_line(aes(x=Time, y = LowerCI), color = "red", size = 1)+
+  geom_hline(yintercept = 0, linetype = "dotted", size = 1)+
+  ylab("Coefficient")+ xlab("Day of Year")+
+  ylim(-0.03, 0.02)+
+  theme_classic()
