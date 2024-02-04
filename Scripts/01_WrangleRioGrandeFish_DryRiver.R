@@ -8,7 +8,7 @@ library(lubridate)
 
 
 #Data Fish ####
-dat <- read.csv("Data/Raw/RGSM_Pop_Mon_Query_Monthly_Station_USBR (EIG).csv")
+dat <- read.csv("Data/Raw/AddtionalYears_RGSM_Pop_Mon_Query_Monthly_Station_USBR (EIG).csv")
 
 #Wrangle Fish ####
   #converting to an integer catch per unit effort (CPUE) for Isleta and San Acacia reaches
@@ -58,7 +58,7 @@ CommonSpecies_Dat <- AllStation_Species %>%
 
 
 #write data
-write.csv(CommonSpecies_Dat, "Data/Processed/RGFishCPUE_RM.csv", row.names = F)
+write.csv(CommonSpecies_Dat, "Data/Processed/AdditionalYears_RGFishCPUE_RM.csv", row.names = F)
 
 
 #Data Drying ####
