@@ -19,7 +19,7 @@ datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>%
   summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*10)) %>% 
   ungroup() %>% 
   mutate(LogMean = log(MnCPUE+0.001)) %>% 
-  filter(between(Year, 2003,2021))
+  filter(between(Year, 2010,2021))
 
 #wrangle drying ####
 dat_drying <- read.csv("Data/Processed/2010_2021_WetDryTenths.csv") %>% 
@@ -40,10 +40,25 @@ dat_drying %>%
   ungroup() %>% 
   filter(between(month(Date),4,10)) %>% 
   ggplot(aes(x = DOY, y = ExtentDry, color = as.factor(Year)))+
-  geom_line(size = 1)+
+  geom_line(linewidth = 1)+
   facet_grid(vars(Reach))+
   theme_classic()
 
+  #change extent dry
+dat_drying %>%
+  dplyr::select(!X) %>% 
+  filter(DryRM == 0) %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), DOY = yday(Date)) %>% 
+  mutate(ExtentChng = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
+  ungroup() %>% 
+  filter(between(month(Date),4,10)) %>% 
+  ggplot(aes(x = DOY, y = ExtentChng, color = as.factor(Year)))+
+  geom_line(size = 1)+
+  facet_grid(vars(Reach))+
+  theme_classic()
 
     #mile days
 dat_drying %>%  
@@ -65,7 +80,7 @@ dat_drying %>%
   facet_grid(vars(Reach))+
   theme_classic()
 
-#Extent dry - Isleta
+# matrices for loop #####
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
@@ -83,6 +98,22 @@ ExtIsleta_Irrig <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
+ExtChngIsleta_Irrig <- dat_drying %>%
+  dplyr::select(!X) %>% 
+  filter(DryRM == 0 & Reach == reach) %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  mutate(ExtentChng = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
+  ungroup() %>% 
+  filter(between(month(Date),4,10)) %>% 
+  select(Year, ExtentChng, MnDay) %>% 
+  filter(MnDay != "Feb29") %>% 
+  pivot_wider(names_from = Year, values_from = ExtentChng) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
+
 MileDays_Irrig <- dat_drying %>%  
   select(!X) %>%  
   filter(Date >= "2010-01-01" & Reach == reach) %>%  
@@ -92,11 +123,12 @@ MileDays_Irrig <- dat_drying %>%
   mutate(MD = cumsum(DryRM2)/10) %>%  
   ungroup() %>%  
   filter(between(month(Date), 4, 10)) %>%  
-  group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
-  ungroup() %>% 
   mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
-  select(-c("Reach", "Date")) %>% 
+  group_by(Year, Date) %>%  
+  mutate(Daily_MaxMileDays = max(MD)) %>% 
+  ungroup() %>% 
+  select("Year", "MnDay", "Daily_MaxMileDays") %>% 
+  distinct(Year, MnDay, Daily_MaxMileDays) %>% 
   pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
@@ -104,20 +136,20 @@ MileDays_Irrig <- dat_drying %>%
 #function to prepare data #####
 prepare_data <- function(reach, species_code, step_size){
   
-  #change metric from Extent to Mile Days
+  #change metric from Extent, ExtentChng, to Mile Days
   DryingMetric <- dat_drying %>%
     dplyr::select(!X) %>% 
     filter(DryRM == 0 & Reach == reach) %>% 
     group_by(Reach, Date) %>% 
     summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
     tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-    mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
-           ExtentDry = log(ExtentDry+0.001)) %>% 
+    mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+    mutate(ExtentChng = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
     ungroup() %>% 
     filter(between(month(Date),4,10)) %>% 
-    select(Year, ExtentDry, MnDay) %>% 
+    select(Year, ExtentChng, MnDay) %>% 
     filter(MnDay != "Feb29") %>% 
-    pivot_wider(names_from = Year, values_from = ExtentDry) %>% 
+    pivot_wider(names_from = Year, values_from = ExtentChng) %>% 
     column_to_rownames(var = "MnDay") %>% 
     as.matrix()
   
@@ -288,7 +320,7 @@ for (reach in reaches) {
 # Adjust the results_table to include the step_size column
 colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value", "R2", "Diff_Fratio", "lambda") #change Reach name 
 
-#write.csv(results_table, "FDA_Data/LogExtent2003_2021.csv")
+write.csv(results_table, "FDA_Data/ExtChange.csv")
 
 end.time <- Sys.time()
 time8 <- round(end.time - start.time,2) #14.4 min

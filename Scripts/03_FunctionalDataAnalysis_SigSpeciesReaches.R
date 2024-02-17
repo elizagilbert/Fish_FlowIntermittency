@@ -19,52 +19,15 @@ datfish <- read.csv("Data/Processed/AdditionalYears_RGFishCPUE_RM.csv") %>%
   summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*10)) %>% 
   ungroup() %>% 
   mutate(LogMean = log(MnCPUE+0.001)) %>% 
-  filter(between(Year, 2003,2021))
+  filter(between(Year, 2010,2021))
   
 
 #wrangle drying ####
-dat_drying <- read.csv("Data/Processed/2003_2021_WetDryTenths.csv") %>% 
+dat_drying <- read.csv("Data/Processed/2010_2021_WetDryTenths.csv") %>% 
   mutate(Reach = case_when(RMTenthDry < 116 ~ "San Acacia",
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
 
-#visualzing data #####
-
-   #extent dry
-dat_drying %>%
-  dplyr::select(!X) %>% 
-  filter(DryRM == 0) %>% 
-  group_by(Reach, Date) %>% 
-  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
-  tidyr::complete(Date = seq.Date(as.Date("2003-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), DOY = yday(Date)) %>% 
-  ungroup() %>% 
-  filter(between(month(Date),4,10)) %>% 
-  ggplot(aes(x = DOY, y = log(ExtentDry+0.001), color = as.factor(Year)))+
-  geom_line(size = 1)+
-  facet_grid(vars(Reach))+
-  theme_classic()
-
-
-    #mile days
-dat_drying %>%  
-  select(!X) %>%  
-  filter(Date >= "2003-01-01") %>%  
-  mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
-  arrange(Date, RMTenthDry) %>%  
-  group_by(year(Date), Reach) %>%  
-  mutate(MD = cumsum(DryRM2)/10) %>%  
-  ungroup() %>%  
-  filter(between(month(Date), 4, 10)) %>%  
-  group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = max(MD)) %>%  
-  ungroup() %>% 
-  filter(between(month(Date),4,10)) %>% 
-  mutate(Year = year(Date), DOY = yday(Date)) %>% 
-  ggplot(aes(x = DOY, y = Daily_MaxMileDays, color = as.factor(Year)))+
-  geom_line(size = 1)+
-  facet_grid(vars(Reach))+
-  theme_classic()
 
 #Extent dry - Isleta
 #need it to be a matrix with years named as columns and days as rows 
@@ -76,7 +39,7 @@ ExtIsleta_Irrig <- dat_drying %>%
   tidyr::complete(Date = seq.Date(as.Date("2003-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
   mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
          ExtentDry = log(ExtentDry+0.001)) %>% 
-  filter(between(year(Date), 2003,2021)) %>% 
+  filter(between(year(Date), 2010,2021)) %>% 
   ungroup() %>% 
   filter(between(month(Date),4,10)) %>% 
   select(Year, ExtentDry, MnDay) %>% 
@@ -85,20 +48,37 @@ ExtIsleta_Irrig <- dat_drying %>%
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
 
-MileDays_Irrig <- dat_drying %>%  
+ExtIsleta_Irrig <- dat_drying %>% #Extent Change 
+  dplyr::select(!X) %>% 
+  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
+  mutate(ExtentChng = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
+  ungroup() %>% 
+  filter(between(month(Date),4,10)) %>% 
+  select(Year, ExtentChng, MnDay) %>% 
+  filter(MnDay != "Feb29") %>% 
+  pivot_wider(names_from = Year, values_from = ExtentChng) %>% 
+  column_to_rownames(var = "MnDay") %>% 
+  as.matrix()
+
+ExtIsleta_Irrig <- dat_drying %>%  #Mile Days
   select(!X) %>%  
-  filter(Date >= "2003-01-01" & Reach == "San Acacia") %>%  
+  filter(Date >= "2010-01-01" & Reach == "Isleta") %>%  
   mutate(DryRM2 = case_when(DryRM == 0 ~ 1, TRUE ~ 0)) %>%  
   arrange(Date, RMTenthDry) %>%  
   group_by(year(Date), Reach) %>%  
   mutate(MD = cumsum(DryRM2)/10) %>%  
   ungroup() %>%  
   filter(between(month(Date), 4, 10)) %>%  
-  group_by(Reach, Date) %>%  
-  summarise(Daily_MaxMileDays = log(max(MD)+0.001)) %>%  
-  ungroup() %>% 
   mutate(Year = year(Date), MnDay = format(Date, format = "%b%d")) %>% 
-  select(-c("Reach", "Date")) %>% 
+  group_by(Year, Date) %>%  
+  mutate(Daily_MaxMileDays = max(MD)) %>% 
+  ungroup() %>% 
+  select("Year", "MnDay", "Daily_MaxMileDays") %>% 
+  distinct(Year, MnDay, Daily_MaxMileDays) %>% 
   pivot_wider(names_from = Year, values_from = Daily_MaxMileDays) %>% 
   column_to_rownames(var = "MnDay") %>% 
   as.matrix()
@@ -107,7 +87,7 @@ MileDays_Irrig <- dat_drying %>%
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "CARCAR" & Reach == "San Acacia") %>% 
+    filter(Species_Codes == "CYPLUT" & Reach == "San Acacia") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -208,9 +188,9 @@ min.index <- which.min(SSE.CV)
   (r2 <- 1-(SSE2/SSE0))
 
 ##This part was in the Ramsay book and not in Jiguo Cao's script or lecture
-F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
-F.res$Fobs
-F.res$qval
+# F.res = Fperm.fd(Carcar_Isleta, ExtIsleta_list, betalist2)
+# F.res$Fobs
+# F.res$qval
 
 #plotting ####
 #8) plot beta(t)
@@ -242,7 +222,7 @@ betafd         = betafdPar$fd
 betastderrList = stderrList$betastderrlist
 betastderrfd   = betastderrList[[2]]
 
-plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-.01, .01))
+plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-1, 1.5))
  abline(h = 0, lty = 2)
  lines(betafd+2*betastderrfd, lty=2, lwd=2, col = "red")
  lines(betafd-2*betastderrfd, lty=2, lwd=2, col = "red")
@@ -264,6 +244,22 @@ finaldat <- as.data.frame(cbind(time, coefs, coefs_sd)) %>%
 # write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CYPLUT_Extent.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CARCAR_Extent.csv", row.names = F)
 
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_CHNG.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_GAMAFF_CHNG.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_CYPLUT_CHNG.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanA_CYPLUT_CHNG.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanA_ICTPUN_CHNG.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanA_GAMAFF_CHNG.csv", row.names = F)
+
+
+
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PLAGRA_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_CYPLUT_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_CYPLUT_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_Isleta_GAMAFF_MD.csv", row.names = F)
+# write.csv(finaldat, "FDA_Data/Coefs_SanAcacia_GAMAFF_MD.csv", row.names = F)
 
 finaldat %>% 
   ggplot(aes(x = Time, y = Coef))+

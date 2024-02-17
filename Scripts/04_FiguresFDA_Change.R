@@ -7,57 +7,41 @@ library(tidyverse)
 library(cowplot)
 
 #data ####
-
-#extent
-# cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_Extent.csv") %>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-# gamaff_is <- read.csv("FDA_Data/Coefs_Isleta_GAMAFF_Extent.csv")%>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-# pimpro_is <- read.csv("FDA_Data/Coefs_Isleta_PIMPRO_Extent.csv")%>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-# plagra_is <- read.csv("FDA_Data/Coefs_Isleta_PLAGRA_Extent.csv")%>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-# 
-# cyplut_san_a <- read.csv("FDA_Data/Coefs_SanAcacia_CYPLUT_Extent.csv")%>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-# carcar_san_a <- read.csv("FDA_Data/Coefs_SanAcacia_CARCAR_Extent.csv")%>% 
-#   mutate(Time = as.Date(Time, origin="1970-01-01"))
-
-#md
-pimpro_is <- read.csv("FDA_Data/Coefs_Isleta_PIMPRO_MD.csv")%>% 
+#change
+ictpun_san_a <- read.csv("FDA_Data/Coefs_SanA_ICTPUN_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
-plagra_is <- read.csv("FDA_Data/Coefs_Isleta_PLAGRA_MD.csv") %>% 
+pimpro_is <- read.csv("FDA_Data/Coefs_Isleta_PIMPRO_CHNG.csv") %>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
 
-gamaff_is <- read.csv("FDA_Data/Coefs_Isleta_GAMAFF_MD.csv")%>% 
+gamaff_is <- read.csv("FDA_Data/Coefs_Isleta_GAMAFF_Extent.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
-gamaff_san <- read.csv("FDA_Data/Coefs_SanAcacia_GAMAFF_MD.csv")%>% 
+gamaff_san <- read.csv("FDA_Data/Coefs_SanA_GAMAFF_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 
-cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_MD.csv")%>% 
+cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
-cyplut_san_a <- read.csv("FDA_Data/Coefs_SanAcacia_CYPLUT_MD.csv")%>% 
+cyplut_san_a <- read.csv("FDA_Data/Coefs_SanA_CYPLUT_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 #plotting code
 
   #cyplut - isleta
-pl_pim_is <- pimpro_is %>% 
+pl_ict_san_a <- ictpun_san_a %>% 
   ggplot(aes(x = Time, y = Coef))+
   geom_line(size = 1)+
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  ylim(-0.005, 0.010)+
+  ylim(-0.1, 0.4)+
   theme_classic()+
-  ggtitle("Fathead Minnow (Upper)")+
-  theme(plot.title = element_text(size = 10))+
+  ggtitle("Channel Catfish (Lower)")+
+  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
   #gamaff - isleta
-pl_pla_is <-plagra_is %>% 
+pl_pim_is <-pimpro_is %>% 
   ggplot(aes(x = Time, y = Coef))+
   geom_line(size = 1)+
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
@@ -66,9 +50,9 @@ pl_pla_is <-plagra_is %>%
   ylab("Coefficient")+ xlab("")+
   scale_y_continuous(breaks = seq(-0.04, 0.08, 0.02))+
   theme_classic()+
-  ylim(-0.0005, 0.0005)+
-  ggtitle("Flathead Chub (Upper)")+
-  theme(plot.title = element_text(size = 10))+
+  ylim(-1, 2)+
+  ggtitle("Fathead Minnow (Upper)")+
+  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -80,7 +64,7 @@ pl_gam_is <-gamaff_is %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  scale_y_continuous(limits = c(-0.01, 0.03), breaks = c(-.01, 0.0, 0.01, 0.02, 0.03))+
+  scale_y_continuous(limits = c(-0.1, 0.1))+
   theme_classic()+
   ggtitle("Mosquitofish (Upper)")+
   theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
@@ -95,10 +79,10 @@ pl_gam_sana <-gamaff_san %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  ylim(-0.005, 0.01)+
+  ylim(-0.25, 0.25)+
   theme_classic()+
   ggtitle("Mosquitofish (Lower)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -110,11 +94,12 @@ pl_cyp_is <-cyplut_is %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  ylim(-0.001, 0.001)+
+  ylim(-0.0004, 0.0004)+
   theme_classic()+
   ggtitle("Red Shiner (Upper)")+
   theme(plot.title = element_text(size = 10))+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
+  scale_y_continuous(labels = scales::label_number())
 
  #carcar - san acacia
 pl_cyp_sana<- cyplut_san_a %>% 
@@ -124,12 +109,12 @@ pl_cyp_sana<- cyplut_san_a %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("Coefficient")+ xlab("")+
-  ylim(-0.01, 0.04)+
+  ylim(-0.1, 0.4)+
   theme_classic()+
   ggtitle("Red Shiner (Lower)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
-# tiff("Figures/FDA_MD.jpg", units= "in", width = 8, height = 6, res = 600)
-plot_grid(pl_pim_is, pl_pla_is, pl_gam_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)
-# dev.off()
+tiff("Figures/FDA_Change.jpg", units= "in", width = 8, height = 6, res = 600)
+plot_grid(pl_ict_san_a, pl_pim_is, pl_gam_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)
+dev.off()
