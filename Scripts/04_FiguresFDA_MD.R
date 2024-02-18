@@ -34,11 +34,12 @@ pl_pim_is <- pimpro_is %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  ylim(-0.005, 0.010)+
+  ylim(-0.001, 0.0010)+
   theme_classic()+
   ggtitle("Fathead Minnow (Upper)")+
   theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
+  scale_y_continuous(labels = scales::label_number())
 
   #gamaff - isleta
 pl_pla_is <-plagra_is %>% 
@@ -64,7 +65,7 @@ pl_gam_is <-gamaff_is %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("")+ xlab("")+
-  scale_y_continuous(limits = c(-0.01, 0.03), breaks = c(-.01, 0.0, 0.01, 0.02, 0.03))+
+  scale_y_continuous(limits = c(-0.01, 0.1))+
   theme_classic()+
   ggtitle("Mosquitofish (Upper)")+
   theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
@@ -109,11 +110,12 @@ pl_cyp_sana<- cyplut_san_a %>%
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
   ylab("Coefficient")+ xlab("")+
-  ylim(-0.01, 0.04)+
+  ylim(-0.0001, 0.0001)+
   theme_classic()+
   ggtitle("Red Shiner (Lower)")+
   theme(plot.title = element_text(size = 10))+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")+
+  scale_y_continuous(labels = scales::label_number())
 
 tiff("Figures/FDA_MD.jpg", units= "in", width = 8, height = 6, res = 600)
 plot_grid(pl_pim_is, pl_pla_is, pl_gam_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)

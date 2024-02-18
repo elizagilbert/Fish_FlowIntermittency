@@ -29,14 +29,13 @@ dat_drying <- read.csv("Data/Processed/2010_2021_WetDryTenths.csv") %>%
          Date = as.Date(Date, format = "%Y-%m-%d"))
 
 
-#Extent dry - Isleta
-#need it to be a matrix with years named as columns and days as rows 
-ExtIsleta_Irrig <- dat_drying %>%
+#matrices for FDA ####
+ExtIsleta_Irrig <- dat_drying %>% #Extent
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
-  tidyr::complete(Date = seq.Date(as.Date("2003-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
   mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), MnDay = format(Date, format = "%b%d"),
          ExtentDry = log(ExtentDry+0.001)) %>% 
   filter(between(year(Date), 2010,2021)) %>% 
@@ -87,7 +86,7 @@ ExtIsleta_Irrig <- dat_drying %>%  #Mile Days
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "CYPLUT" & Reach == "San Acacia") %>% 
+    filter(Species_Codes == "GAMAFF" & Reach == "Isleta") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -206,6 +205,9 @@ abline(0,1,lty=1, lwd=2,col="red")
 #9) confidence intervals ####
 # fitted residuals
 resid   = Carcar_Isleta - chat2_Carcar_ExtIsleta
+plot(resid)
+qqnorm(resid)
+qqline(resid)
 
 # estimate sigma^2
 SigmaE. = sum(resid^2)/(ny-AnnCarcarExtIsleta$df) 
@@ -222,7 +224,7 @@ betafd         = betafdPar$fd
 betastderrList = stderrList$betastderrlist
 betastderrfd   = betastderrList[[2]]
 
-plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-1, 1.5))
+plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-.01, 0.1))
  abline(h = 0, lty = 2)
  lines(betafd+2*betastderrfd, lty=2, lwd=2, col = "red")
  lines(betafd-2*betastderrfd, lty=2, lwd=2, col = "red")
@@ -250,8 +252,6 @@ finaldat <- as.data.frame(cbind(time, coefs, coefs_sd)) %>%
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_CYPLUT_CHNG.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_ICTPUN_CHNG.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_GAMAFF_CHNG.csv", row.names = F)
-
-
 
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_MD.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PLAGRA_MD.csv", row.names = F)
