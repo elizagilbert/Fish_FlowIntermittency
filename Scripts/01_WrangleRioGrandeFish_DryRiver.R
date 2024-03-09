@@ -40,21 +40,22 @@ AllStation_Species <- station_species %>%  #should be 4580 once remove no fish r
   #removing species whose frequency was <15% 
   #Stations with NA are those that were dry
 temp2 <- AllStation_Species %>% 
-  group_by(Reach, Species_Codes) %>% 
+  group_by(Species_Codes) %>% 
   count(CPUE_m == 0) %>% 
-  rename(Grp = 3) %>% 
+  rename(Grp = 2) %>% 
   pivot_wider(names_from = Grp, values_from = n) %>% 
-  rename(NotZero = 3, IsZero = 4) %>% 
+  rename(NotZero = 2, IsZero = 3) %>% 
   mutate(NotZero = coalesce(NotZero,0)) %>% 
   mutate(Percent = NotZero/(NotZero + IsZero)*100) %>% 
   drop_na() %>% 
-  filter(Percent >= 15)
+  filter(Percent >= 10)
 
 
 CommonSpecies_Dat <- AllStation_Species %>% 
-  right_join(temp2, by = c("Species_Codes", "Reach")) %>% 
+  right_join(temp2, by = c("Species_Codes")) %>% 
   select(RM_Start, Reach, Year, Species_Codes, CPUE_m) %>% 
-  mutate(RM_Start = round(RM_Start,0)) 
+  mutate(RM_Start = round(RM_Start,0)) %>% 
+  na.omit()
 
 
 #write data

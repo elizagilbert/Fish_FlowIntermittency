@@ -13,7 +13,7 @@ library(beepr)
 library(loo)
 
 #Data ####
-datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
+datfish_rm<- read.csv("Data/Processed/AdditionalYears_RGFishCPUE_RM.csv")
 datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
 
 #Wrangle data ####

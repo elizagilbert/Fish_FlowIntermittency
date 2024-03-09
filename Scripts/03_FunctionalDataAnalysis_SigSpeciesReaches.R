@@ -95,7 +95,7 @@ ExtIsleta_Irrig <- dat_drying %>%  #Mile Days
 #2) create functional covariate for predictor data ####
 
   #for irrigation season
-ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,4)) #don't add penalties or lambda to keep data information
+ExtIsleta_basis <- create.bspline.basis(c(1,214), norder = 4, breaks = seq(1,214,5)) #don't add penalties or lambda to keep data information
 #plot(ExtIsleta_basis)
 plot(ExtIsleta_basis)
   

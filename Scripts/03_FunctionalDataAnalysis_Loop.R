@@ -285,7 +285,7 @@ run_analysis <- function(data){
 
 reaches <- c("San Acacia", "Isleta")
 species_codes <- c( "CARCAR", "CYPCAR" ,"CYPLUT" ,"GAMAFF" ,"HYBAMA", "ICTPUN", "PIMPRO", "PLAGRA")
-step_size <- c(4)  # Example step sizes
+step_size <- c(5)  # Example step sizes
 
 results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), 
                             TF_Fratio = numeric(), P_Value = numeric(), r2 = numeric(), best_loglam = numeric(),

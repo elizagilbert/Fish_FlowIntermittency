@@ -7,6 +7,7 @@ library(lubridate)
 library(plyr) #this overwrites a number of functions from dplyr so need to call it specifically from dplyr
 library(brms)
 library(scales)
+library(gridExtra)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
@@ -55,6 +56,8 @@ ExtentChngDry_Irrig <- dat_drying %>%
   filter(DryRM == 0) %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = (sum(DryRM == 0)/10)*1.6) %>% 
+  ungroup() %>% 
+  group_by(Reach) %>% 
   complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
   mutate(ExtentDry = replace_na(ExtentDry, 0),
          ChngExtentDry = ExtentDry - lag(ExtentDry, default = ExtentDry[1])) %>% 
@@ -80,12 +83,10 @@ KiloMDays_Irrig <- dat_drying %>%
 
 newlabels2<- c("ExtentDry" = "Extent dry", "ChngExtentDry" = "Change in extent dry", "Daily_KiloMDayes" = "Kilometer-days dry")
 
-  #line plots
-tiff("Figures/DailyDryingMetrics.jpg", units= "in", width = 8, height = 6, res = 600)
-cbind(ExtentChngDry_Irrig, KiloMDays_Irrig) %>% 
+p1 <- cbind(ExtentChngDry_Irrig, KiloMDays_Irrig) %>% 
   pivot_longer(cols = c("ExtentDry", "ChngExtentDry", "Daily_KiloMDayes"), names_to = "Metric", values_to = "values") %>% 
   mutate(DOY = yday(Date)) %>%
-  filter(Year >= 2019) %>% 
+  filter(Year >= 2016) %>% 
   mutate(across(Metric, ~factor(., levels=c("ExtentDry", "ChngExtentDry", "Daily_KiloMDayes")))) %>% 
   ggplot(aes(x = DOY, y = values, color = Reach))+
   geom_line(size = 1)+
@@ -93,7 +94,26 @@ cbind(ExtentChngDry_Irrig, KiloMDays_Irrig) %>%
   theme_classic()+
   xlab("Day of year") + ylab("Kilometers")+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
-                     labels = c("Upper", "Lower"))
+                     labels = c("Upper", "Lower"))+
+  theme(legend.position = "none", axis.text.x = element_text(angle = 90))
+
+p2 <- cbind(ExtentChngDry_Irrig, KiloMDays_Irrig) %>% 
+  pivot_longer(cols = c("ExtentDry", "ChngExtentDry", "Daily_KiloMDayes"), names_to = "Metric", values_to = "values") %>% 
+  mutate(DOY = yday(Date)) %>%
+  filter(Year < 2016) %>% 
+  mutate(across(Metric, ~factor(., levels=c("ExtentDry", "ChngExtentDry", "Daily_KiloMDayes")))) %>% 
+  ggplot(aes(x = DOY, y = values, color = Reach))+
+  geom_line(size = 1)+
+  facet_grid(Metric~Year, scales = "free", labeller = labeller(Metric= newlabels2))+
+  theme_classic()+
+  xlab("Day of year") + ylab("Kilometers")+
+  scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
+                     labels = c("Upper", "Lower"))+
+  theme(legend.position = "none", axis.text.x = element_blank()) + xlab("")
+  
+#line plots
+tiff("Figures/DailyDryingMetrics.jpg", units= "in", width = 8, height = 10, res = 600)
+grid.arrange(p2,p1)
 dev.off()
 
 #hurdle conditional effects ####
@@ -138,22 +158,29 @@ MaxExtent <- readRDS("Models/MaxExtent.rds")
 conditions <- make_conditions(MaxExtent, "Species_Codes")
 
 ce3 <- conditional_effects(MaxExtent, "Max_Extent:Reach", conditions = conditions, dpar="hu")
-for_pl3 <- ce3$`Max_Extent:Reach`
+for_pl3 <- ce3$`Max_Extent:Reach` %>% 
+  mutate(Max_Extent = Max_Extent*1.6)
 
 tiff("Figures/HurdleHu_MaxExtent.jpg", units= "in", width = 8, height = 6, res = 600)
 for_pl3 %>% 
   mutate(Species_Codes = factor(Species_Codes, levels=c("ICTPUN" ,"CYPCAR", "PIMPRO", "PLAGRA" ,  
                                      "GAMAFF" , "CYPLUT", "HYBAMA" , "CARCAR" ))) %>% 
-  ggplot(aes(x = Max_Extent, y = estimate__, color = Reach, fill = Reach)) +
+  ggplot(aes(x = Max_Extent, y = (1-estimate__), color = Reach, fill = Reach)) +
   geom_line(size = 1)+
-  geom_ribbon(aes(ymin=for_pl3$lower__, ymax=for_pl3$upper__, group = Reach),
+  geom_ribbon(aes(ymin=(1-for_pl3$lower__), ymax=1-(for_pl3$upper__), group = Reach),
               linetype = 1, alpha = 0.6)+
   facet_wrap(vars(Species_Codes), labeller = labeller(Species_Codes= newlabels) )+
-  ylab("Hu (probabiilty of no capture)") + xlab("Maximum extent (km)")+
+  ylab(expression(paste("1- ", italic("hu")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
   theme_classic()+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
-                     labels = c("Upper", "Lower"))
+                     labels = c("Upper", "Lower"))+
+  theme(
+    legend.position = c(1,0), # bottom right position
+    legend.justification = c(1, 0), # bottom right justification
+    legend.box.margin = margin(5, l = 5, unit = "mm") # small margin
+  )
 dev.off()
+
 
 conditional_effects(m3)
 
@@ -202,8 +229,7 @@ stats_epredp %>%
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
-  ylab (expression(paste("Density (#/", m^2, ")", sep="")))+
-  xlab("Maximum extent (km)")+
+  ylab(expression(paste(italic("mu")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification
