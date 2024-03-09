@@ -159,7 +159,10 @@ conditions <- make_conditions(MaxExtent, "Species_Codes")
 
 ce3 <- conditional_effects(MaxExtent, "Max_Extent:Reach", conditions = conditions, dpar="hu")
 for_pl3 <- ce3$`Max_Extent:Reach` %>% 
-  mutate(Max_Extent = Max_Extent*1.6)
+  mutate(Max_Extent = Max_Extent*1.6) 
+
+for_pl3 <- for_pl3[!(for_pl3$Reach == "Isleta" & for_pl3$Max_Extent > 40 ),] 
+
 
 tiff("Figures/HurdleHu_MaxExtent.jpg", units= "in", width = 8, height = 6, res = 600)
 for_pl3 %>% 
@@ -213,6 +216,8 @@ stats_epredp <- ddply(pp_epredp_long, c("Species", "Reach", "Max_Extent"), summa
   mutate(Max_Extent = as.numeric(Max_Extent*1.6), 
          Species = factor(Species, levels=c("ICTPUN" ,"CYPCAR", "PIMPRO", "PLAGRA" ,  
                                                "GAMAFF" , "CYPLUT", "HYBAMA" , "CARCAR" )))
+
+stats_epredp <- stats_epredp[!(stats_epredp$Reach == "Isleta" & stats_epredp$Max_Extent > 40 ),] 
 
 newlabels<- c("CYPLUT" = "Red Shiner", "CYPCAR" = "Common Carp", 
               "PLAGRA" = "Flathead Chub", "ICTPUN" = "Channel Catfish", 
