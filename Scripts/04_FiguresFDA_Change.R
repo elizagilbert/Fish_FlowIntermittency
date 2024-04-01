@@ -15,8 +15,6 @@ pimpro_is <- read.csv("FDA_Data/Coefs_Isleta_PIMPRO_CHNG.csv") %>%
 
 gamaff_is <- read.csv("FDA_Data/Coefs_Isleta_GAMAFF_Extent.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
-gamaff_san <- read.csv("FDA_Data/Coefs_SanA_GAMAFF_CHNG.csv")%>% 
-  mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 
 cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_CHNG.csv")%>% 
@@ -71,21 +69,6 @@ pl_gam_is <-gamaff_is %>%
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
-  #plagra - isleta
-pl_gam_sana <-gamaff_san %>% 
-  ggplot(aes(x = Time, y = Coef))+
-  geom_line(size = 1)+
-  geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
-  geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
-  geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
-  ylim(-0.25, 0.25)+
-  theme_classic()+
-  ggtitle("Mosquitofish (Lower)")+
-  theme(plot.title = element_text(size = 10))+
-  scale_x_date(date_breaks = "1 month", date_labels = "%b")
-
-
   #cyplut - san acacia
 pl_cyp_is <-cyplut_is %>% 
   ggplot(aes(x = Time, y = Coef))+
@@ -116,5 +99,5 @@ pl_cyp_sana<- cyplut_san_a %>%
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 tiff("Figures/FDA_Change.jpg", units= "in", width = 8, height = 6, res = 600)
-plot_grid(pl_ict_san_a, pl_pim_is, pl_gam_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)
+plot_grid(pl_ict_san_a, pl_pim_is, pl_gam_is, pl_cyp_is, pl_cyp_sana)
 dev.off()

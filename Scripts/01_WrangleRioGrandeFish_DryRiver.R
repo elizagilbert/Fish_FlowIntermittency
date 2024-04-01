@@ -16,7 +16,7 @@ dat_fish <- dat %>%
   mutate(Date = as.Date(Date.Collected, format = "%m/%d/%Y"),
          CPUE_m = SumOfSPEC/Effort.m.2,
          Year = year(Date)) %>% 
-  filter(Reach != "Angostura", Year != 2022) %>% 
+  filter(Reach != "Angostura", between(Year, 2010, 2021)) %>% 
   select(Reach, Station, Year, Date, RM_Start, Species_Codes, CPUE_m)
 
   #inserting zeros to locations where a given species wasn't captured
@@ -37,7 +37,7 @@ AllStation_Species <- station_species %>%  #should be 4580 once remove no fish r
   ungroup() 
 
 
-  #removing species whose frequency was <15% 
+  #removing species whose frequency was <5% 
   #Stations with NA are those that were dry
 temp2 <- AllStation_Species %>% 
   group_by(Species_Codes) %>% 
@@ -48,7 +48,7 @@ temp2 <- AllStation_Species %>%
   mutate(NotZero = coalesce(NotZero,0)) %>% 
   mutate(Percent = NotZero/(NotZero + IsZero)*100) %>% 
   drop_na() %>% 
-  filter(Percent >= 10)
+  filter(Percent >= 5)
 
 
 CommonSpecies_Dat <- AllStation_Species %>% 
@@ -59,7 +59,7 @@ CommonSpecies_Dat <- AllStation_Species %>%
 
 
 #write data
-write.csv(CommonSpecies_Dat, "Data/Processed/AdditionalYears_RGFishCPUE_RM.csv", row.names = F)
+write.csv(CommonSpecies_Dat, "Data/Processed/Greater5Per_RGFishCPUE_RM.csv", row.names = F)
 
 
 #Data Drying ####
@@ -71,7 +71,7 @@ dat_drying <- dat2 %>%
 
 #Wrangle Drying ####
 
-#daily change in river miles dry (extent - # river miles)
+#Extent and daily change in river miles dry (spatial - # river miles)
 ExtentChngDry_Irrig <- dat_drying %>%
   select(!X) %>% 
   filter(DryRM == 0) %>% 
@@ -88,7 +88,26 @@ ExtentChngDry_Irrig <- dat_drying %>%
   ungroup() %>% 
   rename(Year = 2)
 
-#cummulative days and length of drying
+#Proportion of the extent and daily change in river miles dry (spatial extent - # river miles)
+ExtentChngDry_Irrig_Pro <- dat_drying %>%
+  select(!X) %>% 
+  filter(DryRM == 0) %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  mutate(Pro_ExtentDry = case_when(Reach == "Isleta" ~ ExtentDry/53.43, #miles in Isleta reach
+                                   Reach == "San Acacia" ~ ExtentDry/59.65)) %>% #miles in San Acacia Reach
+  complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(Pro_ExtentDry = replace_na(Pro_ExtentDry, 0),
+         Pro_ChngExtentDry = Pro_ExtentDry - lag(Pro_ExtentDry, default = Pro_ExtentDry[1])) %>% 
+  ungroup() %>% 
+  filter(between(month(Date), 4, 10)) %>% 
+  group_by(Reach, year(Date)) %>% 
+  summarise(ProMax_Extent = max(Pro_ExtentDry), ProMean_Extent = mean(Pro_ExtentDry), ProSD_Extent = sd(Pro_ExtentDry),
+            ProMax_Change = max(Pro_ChngExtentDry), ProMean_Change = mean(Pro_ChngExtentDry), ProSD_Change = sd(Pro_ChngExtentDry)) %>% 
+  ungroup() %>% 
+  rename(Year = 2)
+
+#cummulative days of drying (spatial and temporal)
 MileDays_Irrig <- dat_drying %>% 
   select(!X) %>% 
   filter(Date >= "2010-01-01") %>% 
@@ -108,12 +127,35 @@ MileDays_Irrig <- dat_drying %>%
   ungroup() %>% 
   rename(Year = 2)
 
+#Proportion of cummulative days of drying (spatial and temporal)
+MileDays_Irrig_Pro <- dat_drying %>%
+  select(!X) %>% 
+  filter(DryRM == 0) %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  mutate(Pro_ExtentDry = case_when(Reach == "Isleta" ~ ExtentDry/53.43, #miles in Isleta reach
+                                   Reach == "San Acacia" ~ ExtentDry/59.65)) %>% #miles in San Acacia Reach
+  complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  ungroup() %>% 
+  filter(between(month(Date), 4, 10)) %>% 
+  mutate(Pro_ExtentDry = replace_na(Pro_ExtentDry, 0),
+         Year = year(Date)) %>% 
+  group_by(Reach, Year) %>% 
+  mutate(Pro_MD = cumsum(Pro_ExtentDry)) %>% 
+  summarise(Max_ProDays = max(Pro_MD), Mean_ProDays = mean(Pro_MD), ProSD_ProDays = sd(Pro_MD)) %>% 
+  ungroup() 
+  
+  
+
 #combine covariates to save 
 DryCovariates_ByReach <- ExtentChngDry_Irrig %>% 
   left_join(MileDays_Irrig)
 
-write.csv(DryCovariates_ByReach, "Data/Processed/RGDryCovariates_ByReach_Irrig.csv", row.names = F)
+ProDryCovariates_ByReach <- ExtentChngDry_Irrig_Pro %>% 
+  left_join(MileDays_Irrig_Pro)
 
+write.csv(DryCovariates_ByReach, "Data/Processed/RGDryCovariates_ByReach_Irrig.csv", row.names = F)
+write.csv(ProDryCovariates_ByReach, "Data/Processed/ProDryCovariates_ByReach.csv", row.names = F)
 
 dat <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
 
