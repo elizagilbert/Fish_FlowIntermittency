@@ -102,6 +102,7 @@ temp2 <- ExtentChngDry_Irrig_Pro %>%
   group_by(Reach) %>% 
   summarise(meanchng = mean(Prop), sdchng = sd(Prop))
 
+
 #cummulative days and length of drying
 MileDays_Irrig_Pro <- dat_drying %>%
   select(!X) %>% 
@@ -137,6 +138,20 @@ MileDays_Irrig <- dat_drying %>%
 temp3 <- MileDays_Irrig %>% 
   group_by(Reach) %>% 
   summarise(meanmax = mean(Pro_MD), maxmax = max(Pro_MD), sdmax = sd(Pro_MD))
+
+temp4 <- MileDays_Irrig %>% 
+  group_by(Year, Reach) %>% 
+  slice(match(TRUE, MD >0)) %>% 
+  mutate(Jday = yday(Date)) %>% 
+  ungroup() %>% 
+  group_by(Reach) %>% 
+  summarise(MnJday = mean(Jday), MinJday = min(Jday), MaxJday = max(Jday)) %>% 
+  mutate(Mnday = as.Date(MnJday, origin="1970-01-01"),
+         Minday = as.Date(MinJday, origin="1970-01-01"),
+         Maxday = as.Date(MaxJday, origin="1970-01-01"))
+
+
+  
 
 newlabels2<- c("ExtentDry" = "Extent", "ChngExtentDry" = "Extent Change", "MD" = "Accumulation")
 

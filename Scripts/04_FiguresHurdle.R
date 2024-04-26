@@ -35,7 +35,8 @@ for_pl3 %>%
   geom_ribbon(aes(ymin=(1-for_pl3$lower__), ymax=1-(for_pl3$upper__), group = Reach),
               linetype = 1, alpha = 0.6)+
   facet_wrap(vars(Species_Codes), labeller = labeller(Species_Codes= newlabels) )+
-  ylab(expression(paste("1- ", italic("hu")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+  ylab(expression(paste("Probability of occurrence (1- ", italic("hu)")))) + 
+  xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
   theme_classic()+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
                      labels = c("Upper", "Lower"))+
