@@ -82,7 +82,7 @@ pl_gam_sana <-gamaff_san %>%
   ylab("")+ xlab("")+
   ylim(-0.005, 0.01)+
   theme_classic()+
-  ggtitle("Mosquitofish (Lower)")+
+  ggtitle("Western Mosquitofish (Lower)")+
   theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 

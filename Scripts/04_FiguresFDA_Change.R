@@ -64,7 +64,7 @@ pl_gam_is <-gamaff_is %>%
   ylab("")+ xlab("")+
   scale_y_continuous(limits = c(-0.1, 0.1))+
   theme_classic()+
-  ggtitle("Mosquitofish (Upper)")+
+  ggtitle("Western Mosquitofish (Upper)")+
   theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 

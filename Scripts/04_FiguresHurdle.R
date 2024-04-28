@@ -26,6 +26,9 @@ for_pl3 <- ce3$`Max_Extent:Reach` %>%
 
 for_pl3 <- for_pl3[!(for_pl3$Reach == "Isleta" & for_pl3$Max_Extent > 40 ),]
 
+temp <- for_pl3 %>% 
+  mutate(ProbOccur = 1 - estimate__, ProbOccurLwr = 1 - lower__, ProbOccurUpper = 1 - upper__) 
+
 tiff("Figures/HurdleHu_MaxExtent.jpg", units= "in", width = 8, height = 6, res = 600)
 for_pl3 %>% 
   mutate(Species_Codes = factor(Species_Codes, levels=c("ICTPUN" ,"CYPCAR", "PIMPRO", "PLAGRA" ,  
