@@ -50,7 +50,7 @@ pl_pim_is <- pimpro_is %>%
   ylim(-0.01, 0.030)+
   theme_classic()+
   ggtitle("Fathead Minnow (Upper)")+
-  theme(plot.title = element_text(size = 10))+
+  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
   #plagra - isleta
@@ -60,12 +60,12 @@ pl_pla_is <-plagra_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("") + xlab("")+
   scale_y_continuous(breaks = seq(-0.04, 0.08, 0.02))+
   theme_classic()+
   ylim(-0.015, 0.005)+
   ggtitle("Flathead Chub (Upper)")+
-  theme(plot.title = element_text(size = 10))+
+  theme(plot.title = element_text(size = 10) , axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -76,11 +76,11 @@ pl_gam_is <-gamaff_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   scale_y_continuous(limits = c(-0.04, 0.08), breaks = c(-0.04, -.02, 0.0, 0.02, 0.04, 0.06, 0.08))+
   theme_classic()+
   ggtitle("Western Mosquitofish (Upper)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -95,7 +95,7 @@ pl_cyp_is <-cyplut_is %>%
   ylim(-0.01, 0.01)+
   theme_classic()+
   ggtitle("Red Shiner (Upper)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 

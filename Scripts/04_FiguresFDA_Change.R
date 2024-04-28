@@ -31,7 +31,7 @@ pl_ict_san_a <- ictpun_san_a %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.1, 0.4)+
   theme_classic()+
   ggtitle("Channel Catfish (Lower)")+
@@ -45,7 +45,7 @@ pl_pim_is <-pimpro_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("")+ xlab("")+
   scale_y_continuous(breaks = seq(-0.04, 0.08, 0.02))+
   theme_classic()+
   ylim(-1, 2)+
@@ -65,7 +65,7 @@ pl_gam_is <-gamaff_is %>%
   scale_y_continuous(limits = c(-0.1, 0.1))+
   theme_classic()+
   ggtitle("Western Mosquitofish (Upper)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -76,7 +76,7 @@ pl_cyp_is <-cyplut_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.0004, 0.0004)+
   theme_classic()+
   ggtitle("Red Shiner (Upper)")+
@@ -91,7 +91,7 @@ pl_cyp_sana<- cyplut_san_a %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("")+ xlab("")+
   ylim(-0.1, 0.4)+
   theme_classic()+
   ggtitle("Red Shiner (Lower)")+

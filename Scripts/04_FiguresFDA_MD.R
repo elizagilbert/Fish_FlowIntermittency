@@ -33,7 +33,7 @@ pl_pim_is <- pimpro_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.001, 0.0010)+
   theme_classic()+
   ggtitle("Fathead Minnow (Upper)")+
@@ -48,7 +48,7 @@ pl_pla_is <-plagra_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("")+ xlab("")+
   scale_y_continuous(breaks = seq(-0.04, 0.08, 0.02))+
   theme_classic()+
   ylim(-0.0005, 0.00025)+
@@ -79,7 +79,7 @@ pl_gam_sana <-gamaff_san %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.005, 0.01)+
   theme_classic()+
   ggtitle("Western Mosquitofish (Lower)")+
@@ -109,7 +109,7 @@ pl_cyp_sana<- cyplut_san_a %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("")+ xlab("")+
   ylim(-0.0001, 0.0001)+
   theme_classic()+
   ggtitle("Red Shiner (Lower)")+
