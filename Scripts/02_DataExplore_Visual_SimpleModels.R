@@ -29,6 +29,20 @@ datfish_rm %>%
   geom_histogram(binwidth = 10)+
   facet_wrap(vars(Species_Codes), scales = "free")
 
+#species means per reach
+fishmean <- datfish_rm %>% 
+  group_by(Species_Codes, Reach) %>% 
+  summarise(MnCpue = round(mean(CPUE_m),4), MinCpue = round(min(CPUE_m),4),
+            MaxCpue = round(max(CPUE_m),4))
+
+annualfishmean <- datfish_rm %>% 
+  group_by(Species_Codes, Reach, Year) %>% 
+  summarise(MeanAnCpue = round(mean(CPUE_m),4)) %>% 
+  ungroup() %>% 
+  group_by(Species_Codes, Reach) %>% 
+  summarise(MnCpue = round(mean(MeanAnCpue),4), MinCpue = round(min(MeanAnCpue),10),
+            MaxCpue = round(max(MeanAnCpue),4))
+
 #Visualize fish ####
 #visualization of annual density
 datfish_rm %>% 

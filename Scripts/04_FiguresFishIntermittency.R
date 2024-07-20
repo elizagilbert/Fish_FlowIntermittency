@@ -5,6 +5,7 @@
 library(tidyverse)
 library(lubridate)
 library(gridExtra)
+library(broom)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
@@ -12,12 +13,17 @@ dat_drying <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDry
   mutate(Reach = case_when(RMTenthDry < 116 ~ "San Acacia",
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
+datfish_yr <- datfish_rm %>% 
+  group_by(Reach, Species_Codes, Year) %>% 
+  summarise(MeanCPUE = mean(CPUE_m))
 
 #general summaries ####
 datfish_rm %>% 
   group_by(Reach, Species_Codes) %>% 
   summarise(Meanab = round(mean(CPUE_m),2), 
             maxab = round(max(CPUE_m),2))
+
+
 
 
 
@@ -196,3 +202,48 @@ dev.off()
 
 
 
+
+#annual trends ###
+# Conversion vector for species codes
+species_conversion <- c("CYPCAR" = "Common Carp", "CYPLUT" = "Red Shiner",
+                        "PLAGRA" = "Flathead Chub", "ICTPUN" = "Channel Catfish", 
+                        "HYBAMA" = "Rio Grande Silvery Minnow",
+                        "PIMPRO" = "Fathead Minnow", "GAMAFF" = "Western Mosquitofish", 
+                        "CARCAR" = "River Carpsucker")
+
+# Create a sorted version of the conversion vector by species names
+species_conversion_sorted <- species_conversion[order(species_conversion)]
+
+# Reorder the Species_Codes factor levels in datfish_yr based on the sorted species names
+datfish_yr <- datfish_yr %>%
+  mutate(Species_Codes = factor(Species_Codes, levels = names(species_conversion_sorted)))
+
+# Conversion function for labeller
+species_labeller <- function(labels) {
+  labels <- as.character(labels)
+  return(species_conversion[labels])
+}
+
+tiff("Figures/TrendsCPUE_Species.jpg", units= "in", width = 7.5, height = 6, res = 600)
+datfish_yr %>% 
+  ggplot(aes(x = Year, y = log10(MeanCPUE + 0.001), color = Species_Codes)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_grid(vars(Reach), labeller = labeller(Species_Codes = species_labeller)) +
+  scale_color_manual(name = "", labels = species_conversion_sorted, values = c(
+    "CARCAR" = "#ffe119", "CYPCAR" = "#e6194B", "CYPLUT" = "#911eb4", "GAMAFF" = "#f032e6",
+    "HYBAMA" = "#42d4f4", "ICTPUN" = "#4363d8", "PIMPRO" = "#f58231", "PLAGRA" = "#3cb44b"
+  )) +
+  theme_classic() +
+  theme(legend.position = "bottom")+
+  ylab("Mean Density (Log10+0.001)")+ xlab("")
+dev.off()
+
+# Fit linear models and extract slopes
+slopes <- datfish_yr %>%
+  group_by(Species_Codes, Reach) %>%
+  do(tidy(lm(log10(MeanCPUE + 0.001) ~ Year, data = .))) %>%
+  filter(term == "Year") %>%
+  select(Species_Codes, Reach, slope = estimate)
+
+# Print the slopes
+print(slopes)

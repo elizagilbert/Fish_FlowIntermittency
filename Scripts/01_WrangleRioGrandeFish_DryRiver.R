@@ -5,6 +5,7 @@
 #Libraries ####
 library(tidyverse)
 library(lubridate)
+library(corrr)
 
 
 #Data Fish ####
@@ -69,6 +70,9 @@ dat_drying <- dat2 %>%
                            TRUE ~ "Isleta"),
          Date = as.Date(Date, format = "%Y-%m-%d"))
 
+#CV function
+cv <- function(x, na.rm = FALSE)  sd(x, na.rm = na.rm)/mean(x, na.rm = na.rm)
+
 #Wrangle Drying ####
 
 #Extent and daily change in river miles dry (spatial - # river miles)
@@ -83,8 +87,10 @@ ExtentChngDry_Irrig <- dat_drying %>%
   ungroup() %>% 
   filter(between(month(Date), 4, 10)) %>% 
   group_by(Reach, year(Date)) %>% 
-  summarise(Max_Extent = max(ExtentDry), Mean_Extent = mean(ExtentDry), SD_Extent = sd(ExtentDry),
-            Max_Change = max(ChngExtentDry), Mean_Change = mean(ChngExtentDry), SD_Change = sd(ChngExtentDry)) %>% 
+  summarise(Max_Extent = max(ExtentDry), Mean_Extent = mean(ExtentDry), 
+            SD_Extent = sd(ExtentDry), CV_Extent = cv(ExtentDry),
+            Max_Change = max(ChngExtentDry), Mean_Change = mean(ChngExtentDry), 
+            SD_Change = sd(ChngExtentDry), CV_Change = cv(ChngExtentDry)) %>% 
   ungroup() %>% 
   rename(Year = 2)
 
@@ -167,3 +173,13 @@ dat %>%
   scale_y_continuous(trans = "log", labels = scales::number_format(accuracy = 0.01, decimal.mark = "."))+
   ylab("Summary") + xlab("Year")+
   theme_classic()
+
+#correlation drying regimes ####
+correlation_matrix_is <- dat %>%
+  mutate(Year = as.factor(Year)) %>%
+  filter(Reach == "Isleta") %>% 
+  select(where(is.numeric)) %>%
+  correlate() %>% 
+  mutate(across(everything(), ~ ifelse(. > 0.5, ., NA)))
+
+

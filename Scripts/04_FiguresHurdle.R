@@ -12,7 +12,7 @@ library(gridExtra)
 #fish ####
 newlabels<- c("CYPCAR" = "Common Carp", "CYPLUT" = "Red Shiner",
               "PLAGRA" = "Flathead Chub", "ICTPUN" = "Channel Catfish", 
-              "HYBAMA" = "Rio Grande Silvery Minnow",
+              "HYBAMA" = "RG Silvery Minnow",
               "PIMPRO" = "Fathead Minnow", "GAMAFF" = "Western Mosquitofish", "CARCAR" = "River Carpsucker")
 
 #"hu" #####
