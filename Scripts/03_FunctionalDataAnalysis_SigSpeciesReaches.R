@@ -3,9 +3,9 @@
 
 
 #libraries ####
-# install.packages("devtools")
-# require(devtools)
-# install_version("fda", version = "5.1.4") #need to install this version or things get weird with the CV and lambda
+install.packages("devtools")
+require(devtools)
+install_version("fda", version = "5.1.4") #need to install this version or things get weird with the CV and lambda
 
 library(tidyverse)
 library(lubridate)
@@ -14,7 +14,7 @@ library(reshape2)
 library(wesanderson) #colors
 
 #wrangle fish ####
-datfish <- read.csv("Data/Processed/AdditionalYears_RGFishCPUE_RM.csv") %>% 
+datfish <- read.csv("Data/Processed/RGFishCPUE_RM.csv") %>% 
   group_by(Species_Codes, Year, Reach) %>% 
   summarise(MnCPUE = (mean(CPUE_m, na.rm = T)*10)) %>% 
   ungroup() %>% 
@@ -49,7 +49,7 @@ ExtIsleta_Irrig <- dat_drying %>% #Extent
 
 ExtIsleta_Irrig <- dat_drying %>% #Extent Change 
   dplyr::select(!X) %>% 
-  filter(DryRM == 0 & Reach == "San Acacia") %>% 
+  filter(DryRM == 0 & Reach == "Isleta") %>% 
   group_by(Reach, Date) %>% 
   summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
   tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
@@ -86,7 +86,7 @@ ExtIsleta_Irrig <- dat_drying %>%  #Mile Days
   #fda ####
   #1)get log abundance and put into named number ####
   Carcar_Isleta <- datfish %>% 
-    filter(Species_Codes == "GAMAFF" & Reach == "Isleta") %>% 
+    filter(Species_Codes == "CYPCAR" & Reach == "Isleta") %>% 
     select(Year, LogMean) %>% 
     pull(LogMean, Year) #makes a named number using Year to name row
   
@@ -224,7 +224,7 @@ betafd         = betafdPar$fd
 betastderrList = stderrList$betastderrlist
 betastderrfd   = betastderrList[[2]]
 
-plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPLUT_Extent)", ylim = c(-.01, 0.1))
+plot(betafd, xlab="Day", ylab="Coeff (Isleta_CYPCAR_ExtentChng)", ylim = c(-.1, 0.8))
  abline(h = 0, lty = 2)
  lines(betafd+2*betastderrfd, lty=2, lwd=2, col = "red")
  lines(betafd-2*betastderrfd, lty=2, lwd=2, col = "red")
@@ -252,6 +252,7 @@ finaldat <- as.data.frame(cbind(time, coefs, coefs_sd)) %>%
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_CYPLUT_CHNG.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_ICTPUN_CHNG.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_SanA_GAMAFF_CHNG.csv", row.names = F)
+#write.csv(finaldat, "FDA_Data/Coefs_Isleta_CYPCAR_CHNG.csv", row.names = F)
 
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PIMPRO_MD.csv", row.names = F)
 # write.csv(finaldat, "FDA_Data/Coefs_Isleta_PLAGRA_MD.csv", row.names = F)

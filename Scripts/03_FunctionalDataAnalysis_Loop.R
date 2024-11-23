@@ -3,9 +3,9 @@
 
 
 #libraries ####
-# install.packages("devtools")
-# require(devtools)
-# install_version("fda", version = "5.1.4") #need to install this version or things get weird with the CV and lambda
+install.packages("devtools")
+require(devtools)
+install_version("fda", version = "5.1.4") #need to install this version or things get weird with the CV and lambda
 
 library(tidyverse)
 library(lubridate)
@@ -28,6 +28,21 @@ dat_drying <- read.csv("Data/Processed/2010_2021_WetDryTenths.csv") %>%
          Date = as.Date(Date, format = "%Y-%m-%d"))
 
 #visualzing data #####
+temp <- dat_drying %>%
+  dplyr::select(!X) %>% 
+  filter(DryRM == 0) %>% 
+  group_by(Reach, Date) %>% 
+  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
+  tidyr::complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
+  mutate(ExtentDry = replace_na(ExtentDry, 0), Year = year(Date), DOY = yday(Date)) %>% 
+  ungroup() %>% 
+  filter(between(month(Date),4,10)) %>% 
+  ggplot(aes(x = ExtentDry))+
+  geom_density()+
+  facet_grid(vars(Year))+
+  scale_y_log10()+
+  theme_classic()
+
 
    #extent dry
 dat_drying %>%
@@ -80,7 +95,7 @@ dat_drying %>%
   facet_grid(vars(Reach))+
   theme_classic()
 
-# matrices for loop #####
+# matrices that should be copied into loop #####
 #need it to be a matrix with years named as columns and days as rows 
 ExtIsleta_Irrig <- dat_drying %>%
   dplyr::select(!X) %>% 
@@ -136,7 +151,7 @@ MileDays_Irrig <- dat_drying %>%
 #function to prepare data #####
 prepare_data <- function(reach, species_code, step_size){
   
-  #change metric from Extent, ExtentChng, to Mile Days
+  #change entire code for each metric from Extent, ExtentChng, and Mile Days from lines above
   DryingMetric <- dat_drying %>%
     dplyr::select(!X) %>% 
     filter(DryRM == 0 & Reach == reach) %>% 
@@ -280,7 +295,7 @@ run_analysis <- function(data){
   r2 <- round(1-(SSE2/SSE0),3)
   
   
-  return(list(TF_Fratio = TF_Fratio, pval = pval, r2 = r2, Dif_Fratio=Dif_Fratio, best_loglam = data$best_loglam))
+  return(list(TF_Fratio = TF_Fratio, Fratio2 = Fratio2, qFratio = qFratio, pval = pval, r2 = r2, Dif_Fratio=Dif_Fratio, best_loglam = data$best_loglam))
 }
 
 reaches <- c("San Acacia", "Isleta")
@@ -288,7 +303,8 @@ species_codes <- c( "CARCAR", "CYPCAR" ,"CYPLUT" ,"GAMAFF" ,"HYBAMA", "ICTPUN", 
 step_size <- c(5)  # Example step sizes
 
 results_table <- data.frame(Reach = character(), Species_Code = character(), step_size = numeric(), 
-                            TF_Fratio = numeric(), P_Value = numeric(), r2 = numeric(), best_loglam = numeric(),
+                            TF_Fratio = numeric(), Fratio2 = numeric(), qFratio = numeric(),
+                            P_Value = numeric(), r2 = numeric(), best_loglam = numeric(),
                             lambda1 = numeric())
 
 start.time <- Sys.time()
@@ -304,7 +320,9 @@ for (reach in reaches) {
         
         # Store results in the table
         results_table <- rbind(results_table, c(reach, species_code, sz,
-                                                analysis_results$TF_Fratio, 
+                                                analysis_results$TF_Fratio,
+                                                analysis_results$Fratio2,
+                                                analysis_results$qFratio,
                                                 analysis_results$pval,
                                                 analysis_results$r2,
                                                 analysis_results$Dif_Fratio,
@@ -318,9 +336,10 @@ for (reach in reaches) {
 }
 
 # Adjust the results_table to include the step_size column
-colnames(results_table) <- c("Reach_MD", "Species_Code", "step_size", "TF_Fratio", "P_Value", "R2", "Diff_Fratio", "lambda") #change Reach name 
+colnames(results_table) <- c("Reach_Extent", "Species_Code", "step_size", "TF_Fratio", "Fratio2", 
+                             "qFratio", "P_Value", "R2", "Diff_Fratio", "lambda") #change Reach name 
 
-write.csv(results_table, "FDA_Data/ExtChange.csv")
+write.csv(results_table, "FDA_Data/ExtentChange.csv")
 
 end.time <- Sys.time()
 time8 <- round(end.time - start.time,2) #14.4 min

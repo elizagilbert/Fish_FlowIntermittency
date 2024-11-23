@@ -17,9 +17,10 @@ gamaff_is <- read.csv("FDA_Data/Coefs_Isleta_GAMAFF_Extent.csv")%>%
   mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 
-cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_CHNG.csv")%>% 
+cypcar_is <- read.csv("FDA_Data/Coefs_Isleta_CYPCAR_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
-cyplut_san_a <- read.csv("FDA_Data/Coefs_SanA_CYPLUT_CHNG.csv")%>% 
+
+cyplut_is <- read.csv("FDA_Data/Coefs_Isleta_CYPLUT_CHNG.csv")%>% 
   mutate(Time = as.Date(Time, origin="1970-01-01"))
 
 #plotting code
@@ -50,7 +51,7 @@ pl_pim_is <-pimpro_is %>%
   theme_classic()+
   ylim(-1, 2)+
   ggtitle("Fathead Minnow (Upper)")+
-  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
+  theme(plot.title = element_text(size = 10))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 
@@ -70,7 +71,7 @@ pl_gam_is <-gamaff_is %>%
 
 
   #cyplut - san acacia
-pl_cyp_is <-cyplut_is %>% 
+pl_cypcar_is <-cypcar_is %>% 
   ggplot(aes(x = Time, y = Coef))+
   geom_line(size = 1)+
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
@@ -79,13 +80,13 @@ pl_cyp_is <-cyplut_is %>%
   ylab("Coefficient")+ xlab("")+
   ylim(-0.0004, 0.0004)+
   theme_classic()+
-  ggtitle("Red Shiner (Upper)")+
-  theme(plot.title = element_text(size = 10))+
+  ggtitle("Common Carp (Upper)")+
+  theme(plot.title = element_text(size = 10), axis.text.x=element_blank())+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")+
   scale_y_continuous(labels = scales::label_number())
 
  #carcar - san acacia
-pl_cyp_sana<- cyplut_san_a %>% 
+pl_cyp_is<- cyplut_is %>% 
   ggplot(aes(x = Time, y = Coef))+
   geom_line(size = 1)+
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
@@ -99,5 +100,5 @@ pl_cyp_sana<- cyplut_san_a %>%
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
 
 tiff("Figures/FDA_Change.jpg", units= "in", width = 8, height = 6, res = 600)
-plot_grid(pl_ict_san_a, pl_pim_is, pl_gam_is, pl_cyp_is, pl_cyp_sana)
+plot_grid(pl_ict_san_a, pl_cypcar_is, pl_pim_is, pl_gam_is, pl_cyp_is)
 dev.off()

@@ -118,5 +118,5 @@ pl_cyp_sana<- cyplut_san_a %>%
   scale_y_continuous(labels = scales::label_number())
 
 tiff("Figures/FDA_MD.jpg", units= "in", width = 8, height = 6, res = 600)
-plot_grid(pl_pim_is, pl_pla_is, pl_gam_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)
+plot_grid(pl_pim_is, pl_pla_is, pl_gam_sana, pl_cyp_is, pl_cyp_sana)
 dev.off()

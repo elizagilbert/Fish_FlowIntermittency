@@ -159,7 +159,7 @@ temp4 <- MileDays_Irrig %>%
 
   
 
-newlabels2<- c("ExtentDry" = "Extent", "ChngExtentDry" = "Extent Change", "MD" = "Accumulation")
+newlabels2<- c("ExtentDry" = "a)  extent", "ChngExtentDry" = "b)  extent change", "MD" = "c)  accumulation")
 
 p1 <- ExtentChngDry_Irrig %>% 
   left_join(MileDays_Irrig) %>% 
@@ -193,6 +193,24 @@ p2 <- ExtentChngDry_Irrig %>%
                      labels = c("Upper", "Lower"))+
   theme(legend.position = "none", axis.text.x = element_text(angle = 90))+
   scale_x_date(date_breaks = "1 month", date_labels = "%b")
+
+tiff("Figures/DailyDryingMetrics.jpg", units= "in", width = 12, height = 6, res = 600)
+ExtentChngDry_Irrig %>% 
+  left_join(MileDays_Irrig) %>% 
+  pivot_longer(cols = c("ExtentDry", "ChngExtentDry", "MD"), names_to = "Metric", values_to = "values") %>% 
+  mutate(DOY = yday(Date)) %>%
+  filter(Year >= 2010) %>% 
+  mutate(across(Metric, ~factor(., levels=c("ExtentDry", "ChngExtentDry", "MD")))) %>% 
+  ggplot(aes(x = Date, y = values, color = Reach))+
+  geom_line(size = 1)+
+  facet_grid(Metric~Year, scales = "free", labeller = labeller(Metric= newlabels2))+
+  theme_classic()+
+  xlab("") + ylab("Kilometers")+
+  scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
+                     labels = c("Upper", "Lower"))+
+  theme(legend.position = "none", axis.text.x = element_text(angle = 90))+
+  scale_x_date(date_breaks = "1 month", date_labels = "%b")
+dev.off()
 
 #line plots
 tiff("Figures/DailyDryingMetrics.jpg", units= "in", width = 8, height = 10, res = 600)

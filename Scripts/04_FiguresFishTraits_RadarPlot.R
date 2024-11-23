@@ -84,7 +84,7 @@ species <- rownames(data)
 data <- rbind(rep(5, 6), rep(1, 6), data)
 
 # Color-blind friendly palette
-colors <- c("#4363d8", "#e6194B", "#3cb44b", "#ffe119", "#f58231", "#911eb4", "#42d4f4", "#f032e6")
+colors <- c("#4363d8", "#e6194B", "#3cb44b", "#ffe119", "#f58231", "#911eb4", "#42d4f4", "#f032e6", "black")
 
 # Create the radar chart
 radarchart(data, 
@@ -105,9 +105,20 @@ legend("topright",
        bty = "n", pch = 20, col = colors, 
        text.col = "black", cex = 0.8, pt.cex = 2)
 
-#2 plots raw ####
+#2 plots raw USE THIS ONE####
 # Read the data
-dat <- read.csv("Data/Raw/Radar_RawData.csv")
+dat <- read.csv("Data/Raw/Radar_RawData.csv") %>% 
+  mutate(Species = case_when(
+    Species == "Channel Catfish" ~ "Channel Catfish (E)",
+    Species == "Common Carp" ~ "Common Carp (I)",
+    Species == "Fathead Minnow" ~ "Fathead Minnow (I)",
+    Species == "Flathead Chub" ~ "Flathead Chub (O)",
+    Species == "Red Shiner" ~ "Red Shiner (O)",
+    Species == "RG Silvery Minnow" ~ "RG Silvery Minnow (O)",
+    Species == "River Carpsucker" ~ "River Carpsucker (O)",
+    Species == "Western Mosquitofish" ~ "Western Mosquitofish (I)",
+    TRUE ~ Species  # Default case to handle any species not specified above
+  ))
 data1 <- dat %>% 
   remove_rownames %>% 
   column_to_rownames(var="Species") 
@@ -125,7 +136,12 @@ min_max_scale <- function(x) {
 df_scaled <- as.data.frame(lapply(data1, min_max_scale))%>% 
   rename("Maximum Length" = Max.TL, "Serial" = Spawning.Periodicity,
          "Season" = Spawning.Season, "Parental Care" = Parental.Care,
-         "Lifespan" = Longevity)
+         "Lifespan" = Longevity, "Appearance" = Juvenile.Appearance.Rank)
+
+# Reorder columns according to the specified order
+desired_order <- c("Maturation", "Appearance", "Season", "Parental Care",  
+                   "Serial","Lifespan",   "Fecundity", "Maximum Length")
+df_scaled <- df_scaled[, desired_order]
 
 # Function to create a single spider plot
 create_spider_plot <- function(data, title, colors, species_names) {
@@ -157,12 +173,12 @@ create_spider_plot <- function(data, title, colors, species_names) {
 }
 
 # Define color palette
-colors1 <- c("#4363d8", "#e6194B",  "#ffe119")
-colors2 <- c("#f58231", "#3cb44b","#911eb4", "#42d4f4", "#f032e6")
+colors1 <- c("#911eb4", "#42d4f4",  "#f58231")
+colors2 <- c("#ffe119",  "#3cb44b","#e6194B", "#4363d8", "#f032e6")
 
 
 # Create two plots
-tiff("Figures/RadarPlots_ScaledRawV2.jpg", units= "in", width = 14, height = 12, res = 600)
+tiff("Figures/RadarPlots_ScaledRawV3.jpg", units= "in", width = 14, height = 12, res = 600)
 
 plot.new()
 # Create the left plot with extra space on the right
