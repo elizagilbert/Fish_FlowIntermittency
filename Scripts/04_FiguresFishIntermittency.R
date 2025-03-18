@@ -43,7 +43,7 @@ datfish_rm %>%
   ggplot(aes(x = (CPUE_m*100), fill = Reach))+
   geom_histogram()+
   facet_wrap(vars(Species_Codes), scales = "free", labeller = labeller(Species_Codes= newlabels))+
-  xlab (expression(paste("Abundance (individuals/", m^2, ")", sep="")))+ 
+  xlab (expression(paste("Density (individuals/", m^2, ")", sep="")))+ 
   ylab("Count")+
   theme_classic()+
   scale_color_manual(name = "River reach", values = c("darkgrey", "black"), aesthetics = c("color", "fill"),

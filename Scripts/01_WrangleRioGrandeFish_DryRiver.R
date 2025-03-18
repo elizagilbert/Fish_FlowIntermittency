@@ -9,7 +9,7 @@ library(corrr)
 
 
 #Data Fish ####
-dat <- read.csv("Data/Raw/AddtionalYears_RGSM_Pop_Mon_Query_Monthly_Station_USBR (EIG).csv")
+dat <- read.csv("Data/Raw/RGSM_Pop_Mon_Query_Monthly_Station_USBR (EIG).csv")
 
 #Wrangle Fish ####
   #converting to an integer catch per unit effort (CPUE) for Isleta and San Acacia reaches
@@ -18,25 +18,28 @@ dat_fish <- dat %>%
          CPUE_m = SumOfSPEC/Effort.m.2,
          Year = year(Date)) %>% 
   filter(Reach != "Angostura", between(Year, 2010, 2021)) %>% 
+  filter(Station != "RKD16-144" &  Station != "RKD19-134" &     #removing isolated pools 
+           Station != "RKD20-138" &  Station != "RKD20-139") %>% 
   select(Reach, Station, Year, Date, RM_Start, Species_Codes, CPUE_m)
 
-  #inserting zeros to locations where a given species wasn't captured
-stations <- unique(dat_fish$Station) #length = 229
-species_code <- unique(dat_fish$Species_Codes) #length = 24
-  
-station_species <- expand.grid(stations, species_code) %>% #should be 5038 once remove dry sites
-  rename(Station = 1, Species_Codes = 2) %>% 
-  filter(Species_Codes != "SITE DRY" &  Species_Codes != "Site Dry")
+stations <- unique(dat_fish$Station) #length = 205 
+species_code <- unique(dat_fish$Species_Codes) #length = 22 includes 2 site dry species codes
 
-AllStation_Species <- station_species %>%  #should be 4580 once remove no fish records
+#expanding grid so I can add zeros to all species when not caught and removing sites dry
+#should be 4100 once remove site dry (n=2)
+station_species <- expand.grid(stations, species_code) %>% 
+  rename(Station = 1, Species_Codes = 2) %>% 
+  filter(Species_Codes != "SITE DRY" &  Species_Codes != "Site Dry") 
+
+#adding in zeros and removing the no fish designations,
+AllStation_Species <- station_species %>%  
   left_join(dat_fish, by = c("Station", "Species_Codes")) %>% 
   mutate(CPUE_m = coalesce(CPUE_m, 0)) %>% 
   group_by(Station) %>% 
   fill(c("Reach", "Year", "Date", "RM_Start"), .direction = "up") %>% 
   fill(c("Reach", "Year", "Date", "RM_Start"), .direction = "down") %>% 
-  filter(Species_Codes != "NO FISH" &  Species_Codes != "No Fish Collected") %>% 
+  filter(Species_Codes != "NO FISH" &  Species_Codes != "No Fish Collected") %>%  
   ungroup() 
-
 
   #removing species whose frequency was <5% 
   #Stations with NA are those that were dry
@@ -49,7 +52,7 @@ temp2 <- AllStation_Species %>%
   mutate(NotZero = coalesce(NotZero,0)) %>% 
   mutate(Percent = NotZero/(NotZero + IsZero)*100) %>% 
   drop_na() %>% 
-  filter(Percent >= 5)
+  filter(Percent >= 10) #when changed to 5% models would not converge
 
 
 CommonSpecies_Dat <- AllStation_Species %>% 
@@ -60,11 +63,11 @@ CommonSpecies_Dat <- AllStation_Species %>%
 
 
 #write data
-write.csv(CommonSpecies_Dat, "Data/Processed/Greater5Per_RGFishCPUE_RM.csv", row.names = F)
+write.csv(CommonSpecies_Dat, "Data/Processed/RGFishCPUE_RM.csv", row.names = F)
 
 
 #Data Drying ####
-dat2 <- read.csv("C:/Users/eigilbert/OneDrive - DOI/Documents/UNM/RiverDrying/Chapter1/Scratch_Chap1_R/Data/Processed/2010_2021_WetDryTenths.csv")
+dat2 <- read.csv("Data/Processed/2010_2021_WetDryTenths.csv")
 dat_drying <- dat2 %>% 
   mutate(Reach = case_when(RMTenthDry < 116 ~ "San Acacia",
                            TRUE ~ "Isleta"),

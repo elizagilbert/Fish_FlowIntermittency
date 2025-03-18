@@ -97,7 +97,7 @@ stats_epredp %>%
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
-  ylab(expression(paste(italic("Abundance")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+  ylab(expression(paste(italic("Density")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification
