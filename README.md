@@ -4,7 +4,7 @@ This code was produced for the publication Gilbert, E.I., Turner, T.F., Moses, M
 
 This scripts in this repository include:
 01_ data wrangling of the fish and river drying data
-02_ bayesian hurdle models (n=9) and leave-one-out cross validation for model comparison
+02_ Bayesian hurdle models (n=9) and leave-one-out cross validation for model comparison
 03_ linear functional regression analysis (one script that loops through all species x river reach x river drying dimension and one obtains the results just for species with significant effects)
 04_ plotting manuscript figures (river drying regime overtime, species life-history traits, hurdle model predictions, and significant linear functional regressions)
 
