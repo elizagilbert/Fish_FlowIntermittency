@@ -46,7 +46,7 @@ pl_pim_is <- pimpro_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.01, 0.030)+
   theme_classic()+
   ggtitle("Fathead Minnow (Upper)")+

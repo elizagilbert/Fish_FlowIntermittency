@@ -74,59 +74,18 @@ ExtentChngDry_Irrig <- dat_drying %>%
   filter(between(month(Date), 4, 10)) %>% 
   mutate(Year = year(Date)) 
 
-ExtentChngDry_Irrig_Pro <- dat_drying %>%
-  select(!X) %>% 
-  filter(DryRM == 0) %>% 
-  group_by(Reach, Date) %>% 
-  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
-  mutate(Pro_ExtentDry = case_when(Reach == "Isleta" ~ ExtentDry/53.43, #miles in Isleta reach
-                                   Reach == "San Acacia" ~ ExtentDry/59.65)) %>% #miles in San Acacia Reach
-  complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  mutate(Pro_ExtentDry = replace_na(Pro_ExtentDry, 0),
-         Pro_ChngExtentDry = Pro_ExtentDry - lag(Pro_ExtentDry, default = Pro_ExtentDry[1])) %>% 
-  ungroup() %>% 
-  filter(between(month(Date), 4, 10)) %>% 
-  mutate(Year = year(Date)) %>% 
-  select(!"ExtentDry")
 
-temp <- ExtentChngDry_Irrig_Pro %>% 
+temp <- ExtentChngDry_Irrig %>% 
   group_by(Reach, Year) %>% 
-  summarise(MeanExt = round(mean(Pro_ExtentDry),2), 
-            MaxExt = round(max(Pro_ExtentDry),2),
-            MinExt = round(min(Pro_ExtentDry),2),
-            MeanChgExt = round(mean(Pro_ChngExtentDry),2), 
-            MedChgExt = round(median(Pro_ChngExtentDry),2),
-            MaxChgExt = round(max(Pro_ChngExtentDry),2))
-
-temp2 <- ExtentChngDry_Irrig_Pro %>% 
-  group_by(Reach,Year) %>% 
-  count(Pro_ChngExtentDry>0) %>% 
-  mutate(Prop = (n/213)*100) %>% 
-  ungroup() %>% 
-  rename(TF = 3) %>% 
-  filter(TF == "TRUE") %>% 
-  group_by(Reach) %>% 
-  summarise(meanchng = mean(Prop), sdchng = sd(Prop))
+  summarise(MeanExt = round(mean(ExtentDry),2), 
+            MaxExt = round(max(ExtentDry),2),
+            SDExt = round(sd(ExtentDry),2),
+            MeanChgExt = round(mean(ChngExtentDry),2), 
+            MaxChgExt = round(max(ChngExtentDry),2),
+            SDChgExt = round(sd(ChngExtentDry),2))
 
 
 #cummulative days and length of drying
-MileDays_Irrig_Pro <- dat_drying %>%
-  select(!X) %>% 
-  filter(DryRM == 0) %>% 
-  group_by(Reach, Date) %>% 
-  summarise(ExtentDry = sum(DryRM == 0)/10) %>% 
-  mutate(Pro_ExtentDry = case_when(Reach == "Isleta" ~ ExtentDry/53.43, #miles in Isleta reach
-                                   Reach == "San Acacia" ~ ExtentDry/59.65)) %>% #miles in San Acacia Reach
-  complete(Date = seq.Date(as.Date("2010-01-01"), as.Date("2021-12-31"), by = "day")) %>% 
-  ungroup() %>% 
-  filter(between(month(Date), 4, 10)) %>% 
-  mutate(Pro_ExtentDry = replace_na(Pro_ExtentDry, 0),
-         Year = year(Date)) %>% 
-  group_by(Reach, Year) %>% 
-  mutate(Pro_MD = cumsum(Pro_ExtentDry)) %>% 
-  ungroup() %>% 
-  select(-c("ExtentDry", "Pro_ExtentDry"))
-
 MileDays_Irrig <- dat_drying %>%
   select(!X) %>% 
   filter(DryRM == 0) %>% 
@@ -142,8 +101,14 @@ MileDays_Irrig <- dat_drying %>%
   ungroup() 
 
 temp3 <- MileDays_Irrig %>% 
-  group_by(Reach) %>% 
-  summarise(meanmax = mean(Pro_MD), maxmax = max(Pro_MD), sdmax = sd(Pro_MD))
+  group_by(Reach, Year) %>% 
+  summarise(meanmax = mean(MD), maxmax = max(MD), sdmax = sd(MD))
+
+test <- cbind(temp, temp3)
+test2 <- temp %>% 
+  full_join(temp3, by = c("Year", "Reach"))
+
+write.csv(test2, "Data/Processed/AnnualRiverDryingStatistics.csv", row.names = F)
 
 temp4 <- MileDays_Irrig %>% 
   group_by(Year, Reach) %>% 
@@ -159,7 +124,8 @@ temp4 <- MileDays_Irrig %>%
 
   
 
-newlabels2<- c("ExtentDry" = "a)  extent", "ChngExtentDry" = "b)  extent change", "MD" = "c)  accumulation")
+newlabels2<- c("ExtentDry" = "a)  magnitude", "ChngExtentDry" = "b)  rate of change", 
+               "MD" = "c)  duration")
 
 p1 <- ExtentChngDry_Irrig %>% 
   left_join(MileDays_Irrig) %>% 

@@ -62,7 +62,7 @@ pl_gam_is <-gamaff_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   scale_y_continuous(limits = c(-0.1, 0.1))+
   theme_classic()+
   ggtitle("Western Mosquitofish (Upper)")+

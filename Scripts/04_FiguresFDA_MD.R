@@ -79,7 +79,7 @@ pl_gam_sana <-gamaff_san %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("Coefficient")+ xlab("")+
+  ylab("")+ xlab("")+
   ylim(-0.005, 0.01)+
   theme_classic()+
   ggtitle("Western Mosquitofish (Lower)")+
@@ -94,7 +94,7 @@ pl_cyp_is <-cyplut_is %>%
   geom_line(aes(x=Time, y = UpperCI), color = "grey", linewidth = 1)+
   geom_line(aes(x=Time, y = LowerCI), color = "grey", linewidth = 1)+
   geom_hline(yintercept = 0, linetype = "dotted", linewidth = 1)+
-  ylab("")+ xlab("")+
+  ylab("Coefficient")+ xlab("")+
   ylim(-0.0004, 0.0004)+
   theme_classic()+
   ggtitle("Red Shiner (Upper)")+

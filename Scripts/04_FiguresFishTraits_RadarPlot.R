@@ -124,8 +124,9 @@ data1 <- dat %>%
   column_to_rownames(var="Species") 
 traits <- colnames(data1)
 species <- as.character(rownames(data1))
-species1 <- species[c(1,2,7)]
-species2 <- species[c(3,4,5,6,8)]
+
+species1 <- species[c(1,2,4,6,7)]
+species2 <- species[c(3,5,8)]
 
 # Define a min-max scaling function
 min_max_scale <- function(x) {
@@ -134,7 +135,7 @@ min_max_scale <- function(x) {
 
 # Apply the scaling function to all columns
 df_scaled <- as.data.frame(lapply(data1, min_max_scale))%>% 
-  rename("Maximum Length" = Max.TL, "Serial" = Spawning.Periodicity,
+  dplyr::rename("Maximum Length" = Max.TL, "Serial" = Spawning.Periodicity,
          "Season" = Spawning.Season, "Parental Care" = Parental.Care,
          "Lifespan" = Longevity, "Appearance" = Juvenile.Appearance.Rank)
 
@@ -173,8 +174,8 @@ create_spider_plot <- function(data, title, colors, species_names) {
 }
 
 # Define color palette
-colors1 <- c("#911eb4", "#42d4f4",  "#f58231")
-colors2 <- c("#ffe119",  "#3cb44b","#e6194B", "#4363d8", "#f032e6")
+colors1 <- c("#911eb4", "#42d4f4",  "#f58231", "#ffe119",  "#3cb44b","#e6194B")
+colors2 <- c( "#4363d8", "#f032e6", "black")
 
 
 # Create two plots
@@ -183,11 +184,11 @@ tiff("Figures/RadarPlots_ScaledRawV3.jpg", units= "in", width = 14, height = 12,
 plot.new()
 # Create the left plot with extra space on the right
 par(fig = c(0, 1, 0.5, 1), new = TRUE, mar = c(2, 2, 2, 2))
-create_spider_plot(df_scaled[c(1,2,7),], "Species 1-4", colors1, species1)
+create_spider_plot(df_scaled[c(1,2,4,6,7),], "Species 1-4", colors1, species1)
 
 # Create the right plot with extra space on the left
 par(fig = c(0, 1, 0, 0.5), new = TRUE, mar = c(2, 2, 2, 2))
-create_spider_plot(df_scaled[c(3,4, 5,6,8),], "Species 5-8", colors2, species2)
+create_spider_plot(df_scaled[c(3,5,8),], "Species 5-8", colors2, species2)
 
 dev.off()
 

@@ -10,19 +10,22 @@ library(scales)
 library(gridExtra)
 
 #fish ####
-newlabels<- c("CYPCAR" = "Common Carp", "CYPLUT" = "Red Shiner",
-              "PLAGRA" = "Flathead Chub", "ICTPUN" = "Channel Catfish", 
-              "HYBAMA" = "RG Silvery Minnow",
-              "PIMPRO" = "Fathead Minnow", "GAMAFF" = "Western Mosquitofish", "CARCAR" = "River Carpsucker")
+newlabels<- c("CYPCAR" = "Common Carp (I)", "CYPLUT" = "Red Shiner (O)",
+              "PLAGRA" = "Flathead Chub (O)", "ICTPUN" = "Channel Catfish (E)", 
+              "HYBAMA" = "RG Silvery Minnow (O)",
+              "PIMPRO" = "Fathead Minnow (I)", "GAMAFF" = "Western Mosquitofish (I)", 
+              "CARCAR" = "River Carpsucker (O)")
 
 #"hu" #####
-MaxExtent <- readRDS("Models/MaxExtent.rds")
+MaxExtent <- readRDS("Models/FreshwaterMOdels/mod_maxextent_yr_rm.rds")
 
 conditions <- make_conditions(MaxExtent, "Species_Codes")
 
 ce3 <- conditional_effects(MaxExtent, "Max_Extent:Reach", conditions = conditions, dpar="hu")
 for_pl3 <- ce3$`Max_Extent:Reach` %>% 
-  mutate(Max_Extent = Max_Extent*1.6)
+  mutate(Max_Extent = Max_Extent*1.6)%>% 
+  mutate(Max_Extent = case_when(Reach == "Isleta" ~ (Max_Extent/86)*100,
+                                Reach == "San Acacia" ~ (Max_Extent/68)*100))
 
 for_pl3 <- for_pl3[!(for_pl3$Reach == "Isleta" & for_pl3$Max_Extent > 40 ),]
 
@@ -39,10 +42,11 @@ for_pl3 %>%
               linetype = 1, alpha = 0.6)+
   facet_wrap(vars(Species_Codes), labeller = labeller(Species_Codes= newlabels) )+
   ylab(expression(paste("Probability of occurrence (1- ", italic("hu)")))) + 
-  xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+  xlab(expression(paste("Maximum ", italic("Magnitude"), "(% of km)")))+
   theme_classic()+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
                      labels = c("Upper", "Lower"))+
+  scale_x_continuous(limits = c(1,100))+
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification
@@ -52,7 +56,7 @@ dev.off()
 
 #hurdle pp_epred ####
 
-mod_maxextent <- readRDS("Models/MaxExtent.rds")
+mod_maxextent <- readRDS("Models/FreshwaterMOdels/mod_maxextent_yr_rm.rds")
 newdata <-  crossing(Species_Codes = c("CYPLUT", "PLAGRA", "ICTPUN", "CYPCAR", "HYBAMA", "PIMPRO", "CARCAR", "GAMAFF"),
                      Reach = c("San Acacia", "Isleta"), Max_Extent = seq(0,40,5)) 
 
@@ -77,15 +81,18 @@ stats_epredp <- ddply(pp_epredp_long, c("Species", "Reach", "Max_Extent"), summa
                       CI_L = quantile(Values, probs = 0.025),
                       CI_U = quantile(Values, probs = 0.975)) %>% 
   mutate(Max_Extent = as.numeric(Max_Extent*1.6), 
+         Max_Extent = case_when(Reach == "Isleta" ~ (Max_Extent/86)*100,
+                                Reach == "San Acacia" ~ (Max_Extent/68)*100),
          Species = factor(Species, levels=c("ICTPUN" ,"CYPCAR", "PIMPRO", "PLAGRA" ,  
                                             "GAMAFF" , "CYPLUT", "HYBAMA" , "CARCAR" )))
 
 stats_epredp <- stats_epredp[!(stats_epredp$Reach == "Isleta" & stats_epredp$Max_Extent > 40 ),]
 
-newlabels<- c("CYPLUT" = "Red Shiner", "CYPCAR" = "Common Carp", 
-              "PLAGRA" = "Flathead Chub", "ICTPUN" = "Channel Catfish", 
-              "HYBAMA" = "RG Silvery Minnow",
-              "PIMPRO" = "Fathead Minnow", "GAMAFF" = "Mosquitofish", "CARCAR" = "River Carpsucker")
+newlabels<- c("CYPCAR" = "Common Carp (I)", "CYPLUT" = "Red Shiner (O)",
+              "PLAGRA" = "Flathead Chub (O)", "ICTPUN" = "Channel Catfish (E)", 
+              "HYBAMA" = "RG Silvery Minnow (O)",
+              "PIMPRO" = "Fathead Minnow (I)", "GAMAFF" = "Western Mosquitofish (I)", 
+              "CARCAR" = "River Carpsucker (O)")
 
 tiff("Figures/Predicted_MaxExtent.jpg", units= "in", width = 8, height = 6, res = 600)
 stats_epredp %>% 
@@ -97,7 +104,10 @@ stats_epredp %>%
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
-  ylab(expression(paste(italic("Abundance")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+  scale_x_continuous(limits = c(0,100))+
+  ylab(expression(paste("Density (individuals/", m^2, ")", sep=""))) +
+  xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+  xlab(expression(paste("Maximum ", italic("Magnitude"), "(% of km)")))+
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification

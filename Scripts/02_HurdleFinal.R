@@ -1,9 +1,10 @@
 #Read me ####
-#I'm getting confused on what works and doesn't work and
-#this is script is to get my brain wrapped around things for final model
-#I'm interacting Reach because I know there is a difference between reaches
-#I am not nesting random effects because RMs were not random each year
-#I am using lognormal because Poisson and Negbinomial did not converege
+#modeling the effect of river drying metrics on fish cpue using
+#hurdle models to be able to incorporate all of the zeros
+#using Reach as an interaction because we know there are population differences between reaches
+#not using Year as a random effect because annual variation is already in drying measure
+#using site as a random effect because of spatial differences but testing this whether
+#this is needed using loo
 
 #Libraries ####
 library(tidyverse)
@@ -14,34 +15,60 @@ library(loo)
 
 #Data ####
 datfish_rm<- read.csv("Data/Processed/RGFishCPUE_RM.csv")
-datdry_pro <- read.csv("Data/Processed/ProDryCovariates_ByReach.csv")
+datdry <- read.csv("Data/Processed/RGDryCovariates_ByReach_Irrig.csv")
 
 #Wrangle data ####
-DatFishDry_RM_Pro <- datfish_rm %>% 
-  left_join(datdry_pro) %>% 
+DatFishDry_RM <- datfish_rm %>% 
+  left_join(datdry) %>% 
   mutate(Species_Codes = as.factor(Species_Codes), Year = as.factor(Year), Reach = as.factor(Reach),
          RM_Start = as.factor(RM_Start))
 
 #Priors ####
-get_prior(bf(CPUE_m ~  Species_Codes*ProMax_Extent*Reach + (1|Year) + (1|RM_Start), 
-             hu~  Species_Codes*ProMax_Extent*Reach + + (1|Year) + (1|RM_Start)),
+get_prior(bf(CPUE_m ~  Species_Codes*Max_Extent*Reach + (1|Year) +(1|RM_Start), 
+             hu~  Species_Codes*Max_Extent*Reach + (1|Year) +(1|RM_Start)),
           family = hurdle_lognormal(),
-          data = DatFishDry_RM_Pro)
+          data = DatFishDry_RM)
 
 p1 <- c(set_prior("normal(0,10)", class = "b"))
 
 #hurdle max extent #####
+#running integer Pro, integer fish/100 m fish, max tree depth and 5 chains 
 start.time <- Sys.time()
-mod_Pro_maxextent<-brm(bf(CPUE_m ~ 0+ Species_Codes*ProMax_Extent*Reach + (1|Year) + (1|RM_Start), 
-                      hu~ 0+ Species_Codes*ProMax_Extent*Reach + (1|Year) + (1|RM_Start)),
+mod_maxextent_yr_rm<-brm(bf(CPUE_m ~ 0+ Species_Codes*Max_Extent*Reach + (1|Year) +(1|RM_Start), 
+                      hu~ 0+ Species_Codes*Max_Extent*Reach + (1|Year) +(1|RM_Start)),
                    family = hurdle_lognormal(),
                    prior = p1,
-                   data=DatFishDry_RM_Pro,
-                   chains = 3,
+                   data=DatFishDry_RM,
+                   chains = 4,
                    warmup = 500,
                    iter=4000,
                    sample_prior = TRUE,
                    cores = 4)
+
+beep(1)
+end.time <- Sys.time()
+time1 <- round(end.time - start.time,2) 
+
+saveRDS(mod_maxextent_yr_rm, "Models/FreshwaterMOdels/mod_maxextent_yr_rm.rds")
+
+Reloo_mod_maxextent_yr_rm <- loo(mod_maxextent_yr_rm, reloo = T) 
+saveRDS(Reloo_mod_maxextent_yr_rm, "Models/FreshwaterMOdels/Reloo_mod_maxextent_yr_rm.rds")
+Reloo_maxextent_no_rm <- readRDS("Models/FreshwaterMOdels/Reloo_maxextent_no_rm.rds")
+Reloo_maxextent_rm <- readRDS("Models/FreshwaterMOdels/Reloo_maxextent_rm.rds")
+
+loo_compare(Reloo_maxextent_no_rm, Reloo_maxextent_rm, Reloo_mod_maxextent_yr_rm)
+
+start.time <- Sys.time()
+mod_Pro_maxextent_nosite<-brm(bf(CPUE_m ~ 0+ Species_Codes*ProMax_Extent*Reach , 
+                               hu~ 0+ Species_Codes*ProMax_Extent*Reach),
+                            family = hurdle_lognormal(),
+                            prior = p1,
+                            data=DatFishDry_RM_Pro,
+                            chains = 3,
+                            warmup = 500,
+                            iter=4000,
+                            sample_prior = TRUE,
+                            cores = 4)
 
 beep(1)
 end.time <- Sys.time()
