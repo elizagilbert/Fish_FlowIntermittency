@@ -104,10 +104,14 @@ stats_epredp %>%
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
+<<<<<<< HEAD
   scale_x_continuous(limits = c(0,100))+
   ylab(expression(paste("Density (individuals/", m^2, ")", sep=""))) +
   xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
   xlab(expression(paste("Maximum ", italic("Magnitude"), "(% of km)")))+
+=======
+  ylab(expression(paste(italic("Density")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
+>>>>>>> origin/main
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification

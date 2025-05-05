@@ -24,6 +24,7 @@ dat_fish <- dat %>%
 
 stations <- unique(dat_fish$Station) #length = 205 
 species_code <- unique(dat_fish$Species_Codes) #length = 22 includes 2 site dry species codes
+<<<<<<< HEAD
   
    #expanding grid so I can add zeros to all species when not caught and removing sites dry
    #should be 4100 once remove site dry (n=2)
@@ -32,6 +33,16 @@ station_species <- expand.grid(stations, species_code) %>%
   filter(Species_Codes != "SITE DRY" &  Species_Codes != "Site Dry") 
 
   #adding in zeros and removing the no fish designations,
+=======
+
+#expanding grid so I can add zeros to all species when not caught and removing sites dry
+#should be 4100 once remove site dry (n=2)
+station_species <- expand.grid(stations, species_code) %>% 
+  rename(Station = 1, Species_Codes = 2) %>% 
+  filter(Species_Codes != "SITE DRY" &  Species_Codes != "Site Dry") 
+
+#adding in zeros and removing the no fish designations,
+>>>>>>> origin/main
 AllStation_Species <- station_species %>%  
   left_join(dat_fish, by = c("Station", "Species_Codes")) %>% 
   mutate(CPUE_m = coalesce(CPUE_m, 0)) %>% 
@@ -41,8 +52,13 @@ AllStation_Species <- station_species %>%
   filter(Species_Codes != "NO FISH" &  Species_Codes != "No Fish Collected") %>%  
   ungroup() 
 
+<<<<<<< HEAD
   #removing species whose frequency was <5%, stations with NA are those that were dry 
   #and were dropped from data set
+=======
+  #removing species whose frequency was <5% 
+  #Stations with NA are those that were dry
+>>>>>>> origin/main
 temp2 <- AllStation_Species %>% 
   group_by(Species_Codes) %>% 
   count(CPUE_m == 0) %>% 
@@ -52,7 +68,11 @@ temp2 <- AllStation_Species %>%
   mutate(NotZero = coalesce(NotZero,0)) %>% 
   mutate(Percent = NotZero/(NotZero + IsZero)*100) %>% 
   drop_na() %>% 
+<<<<<<< HEAD
   filter(Percent >= 10)
+=======
+  filter(Percent >= 10) #when changed to 5% models would not converge
+>>>>>>> origin/main
 
 
 CommonSpecies_Dat <- AllStation_Species %>% 
