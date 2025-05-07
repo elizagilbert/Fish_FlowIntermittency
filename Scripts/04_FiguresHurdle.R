@@ -17,7 +17,7 @@ newlabels<- c("CYPCAR" = "Common Carp (I)", "CYPLUT" = "Red Shiner (O)",
               "CARCAR" = "River Carpsucker (O)")
 
 #"hu" #####
-MaxExtent <- readRDS("Models/FreshwaterMOdels/mod_maxextent_yr_rm.rds")
+MaxExtent <- readRDS("Models/MaxExtent.rds")
 
 conditions <- make_conditions(MaxExtent, "Species_Codes")
 
@@ -42,7 +42,7 @@ for_pl3 %>%
               linetype = 1, alpha = 0.6)+
   facet_wrap(vars(Species_Codes), labeller = labeller(Species_Codes= newlabels) )+
   ylab(expression(paste("Probability of occurrence (1- ", italic("hu)")))) + 
-  xlab(expression(paste("Maximum ", italic("Magnitude"), "(% of km)")))+
+  xlab("Maximum Magnitude (% of km)")+
   theme_classic()+
   scale_color_manual(values = c("darkgrey", "black"), aesthetics = c("color", "fill"),
                      labels = c("Upper", "Lower"))+
@@ -56,7 +56,7 @@ dev.off()
 
 #hurdle pp_epred ####
 
-mod_maxextent <- readRDS("Models/FreshwaterMOdels/mod_maxextent_yr_rm.rds")
+mod_maxextent <- readRDS("Models/MaxExtent.rds")
 newdata <-  crossing(Species_Codes = c("CYPLUT", "PLAGRA", "ICTPUN", "CYPCAR", "HYBAMA", "PIMPRO", "CARCAR", "GAMAFF"),
                      Reach = c("San Acacia", "Isleta"), Max_Extent = seq(0,40,5)) 
 
@@ -104,14 +104,10 @@ stats_epredp %>%
                      labels = c("Upper", "Lower"))+
   theme_classic()+
   scale_y_continuous(trans = "log10", labels = comma)+
-<<<<<<< HEAD
   scale_x_continuous(limits = c(0,100))+
   ylab(expression(paste("Density (individuals/", m^2, ")", sep=""))) +
-  xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
-  xlab(expression(paste("Maximum ", italic("Magnitude"), "(% of km)")))+
-=======
-  ylab(expression(paste(italic("Density")))) + xlab(expression(paste("Maximum ", italic("Extent"), "(km)")))+
->>>>>>> origin/main
+  xlab("Maximum Magnitude (% of km)")+
+
   theme(
     legend.position = c(1,0), # bottom right position
     legend.justification = c(1, 0), # bottom right justification
